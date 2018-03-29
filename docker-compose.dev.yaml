@@ -1,0 +1,20 @@
+version: '3'
+services:
+  api:
+    build:
+      context: api
+      dockerfile: Dockerfile.dev
+    environment:
+      RETHINK_HOST: rdb
+    ports:
+      - 3000:3000
+    volumes:
+      - ./api:/app:rw
+    links:
+      - rdb
+  rdb:
+    image: rethinkdb:latest
+    ports:
+      - 28015:28015
+      - 29015:29015
+      - 8080:8080

@@ -1,0 +1,14 @@
+{
+  "extends": [
+    "standard",
+    "standard-flow"
+  ],
+  "rules": {
+    "no-var": "error",
+    "generator-star-spacing": 0,
+    "no-use-before-define": 0
+  },
+  "env": {
+    "node": true
+  }
+}
