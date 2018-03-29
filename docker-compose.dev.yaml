@@ -6,12 +6,29 @@ services:
       dockerfile: Dockerfile.dev
     environment:
       RETHINK_HOST: rdb
+    restart: always
     ports:
       - 3000:3000
     volumes:
       - ./api:/app:rw
     links:
       - rdb
+  web:
+    build:
+      context: web
+      dockerfile: Dockerfile.dev
+    restart: always
+    environment:
+      API_HOST: api
+      API_PORT: 3000
+      PORT: 4000
+      HOST: 0.0.0.0
+    ports:
+      - 4000:4000
+    volumes:
+      - ./web:/app:rw
+    links:
+      - api
   rdb:
     image: rethinkdb:latest
     ports:

@@ -105,15 +105,10 @@ type Mutation {
   createUser(name: String!, email: String!): CreateUserResult!
 }
 
-enum ChangeType {
-  ADD
-  REMOVE
-  CHANGE
-}
-
 type ChangeBooking {
-  type: ChangeType
-  booking: Booking
+  addBooking: Booking
+  removeBooking: Booking
+  changeBooking: Booking
 }
 
 
@@ -136,18 +131,15 @@ const resolvers = {
         switch (type) {
           case 'add':
             return {
-              type: 'ADD',
-              booking: new_val
+              addBooking: new_val
             }
           case 'remove':
             return {
-              type: 'REMOVE',
-              booking: old_val
+              removeBooking: old_val
             }
           case 'change':
             return {
-              type: 'CHANGE',
-              booking: new_val
+              changeBooking: new_val
             }
         }
       },

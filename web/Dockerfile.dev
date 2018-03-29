@@ -1,0 +1,6 @@
+FROM node:9
+
+VOLUME /app
+WORKDIR /app
+
+CMD npm run dev

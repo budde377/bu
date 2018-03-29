@@ -7,10 +7,11 @@ import config from 'config'
 import schema from './graphql/schema'
 import { SubscriptionServer } from 'subscriptions-transport-ws';
 import { execute, subscribe } from 'graphql';
+import cors from '@koa/cors'
 
 const app = new koa();
 const router = new koaRouter();
-
+app.use(cors())
 app.use(koaBody());
 const currentUser = 'f01048cf-d12b-44cd-8840-76065678eebf'
 

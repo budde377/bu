@@ -3,8 +3,20 @@
 import r from 'rethinkdb'
 import config from 'config'
 
-const connectionP = r.connect(config.rethink)
+const connectionP = r.connect(config.rethink).then(init)
 
+const requiredTables = [
+  'users',
+  'bookings',
+  'thangs',
+  'thangCollections'
+]
+
+async function init (conn) {
+  const tables = await r.tableList().run(conn)
+  await Promise.all(requiredTables.map(t => tables.indexOf(t) >= 0 ? null : r.tableCreate(t).run(conn)))
+  return conn
+}
 
 export async function user (id) {
   const res = await r.table('users').get(id).run(await connectionP)
