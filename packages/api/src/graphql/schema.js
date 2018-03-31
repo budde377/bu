@@ -60,7 +60,6 @@ input DateTimeInput {
 input ListBookingsInput {
   from: DateTimeInput
   to: DateTimeInput
-  owner: ID
 }
 
 type Thang {
@@ -157,7 +156,7 @@ const resolvers = {
             }
         }
       },
-      subscribe: (ctx, {thang}) => thangBookingChanges(thang)
+      subscribe: (ctx, {thang}) => thangBookingChanges(thang) // TODO use from and to
     },
     myThangsChange: {
       resolve: v => {
@@ -223,7 +222,7 @@ const resolvers = {
         : null
     },
     async bookings ({id}) {
-      return thangBookings(id)
+      return thangBookings(id) // TODO use to and from
     },
     async owners ({id}) {
       return await thangOwners(id)
