@@ -1,7 +1,7 @@
 // @flow
 import React from 'react'
 import ReactDOM from 'react-dom'
-import App from './view/App'
+import App from './view'
 
 function buildRoot () {
   const r = window.document.getElementById('root')

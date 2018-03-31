@@ -1,0 +1,18 @@
+{
+  "parser": "babel-eslint",
+  "extends": [
+    "standard",
+    "standard-flow",
+    "standard-react"
+  ],
+  "rules": {
+    "no-var": "error",
+    "no-console": "error",
+    "generator-star-spacing": 0,
+    "no-use-before-define": 0
+  },
+  "env": {
+    "node": true,
+    "browser": true
+  }
+}

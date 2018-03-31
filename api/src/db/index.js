@@ -12,41 +12,75 @@ const requiredTables = [
   'thangCollections'
 ]
 
+export type User = {
+  id: string,
+  name: string,
+  nickname: string,
+  picture: string,
+  userId: string,
+  email: string,
+  emailVerified: boolean,
+  givenName: ?string,
+  familyName: ?string,
+  timezone: string
+}
+
+type Thang = {
+  id: string,
+  name: string,
+  owners: string[],
+  collection: ?string,
+  timezone: string
+}
+
+type ThangCollection = {
+  id: string,
+  name: string,
+  thangs: string[],
+  owners: string[]
+}
+
+type Booking = {
+  id: string,
+  from: Date,
+  to: Date,
+  owner: string,
+  thang: string
+}
+
+type WithoutId<V> = $Diff<V, { id: string }>
+
 async function init (conn) {
   const tables = await r.tableList().run(conn)
   await Promise.all(requiredTables.map(t => tables.indexOf(t) >= 0 ? null : r.tableCreate(t).run(conn)))
   return conn
 }
 
-export async function user (id) {
-  const res = await r.table('users').get(id).run(await connectionP)
-  return res
+export async function user (id: string): Promise<?User> {
+  return await r.table('users').get(id).run(await connectionP)
 }
 
-export async function thang (id) {
-  const res = await r.table('thangs').get(id).run(await connectionP)
-  return res
+export async function thang (id: string): Promise<?Thang> {
+  return await r.table('thangs').get(id).run(await connectionP)
 }
 
-export async function thangCollection (id) {
-  const res = await r.table('thangCollections').get(id).run(await connectionP)
-  return res
+export async function thangCollection (id: string): Promise<?ThangCollection> {
+  return await r.table('thangCollections').get(id).run(await connectionP)
 }
 
-export async function booking (id) {
-  const res = await r.table('bookings').get(id).run(await connectionP)
-  return res
+export async function booking (id: string): Promise<?Booking> {
+  return await r.table('bookings').get(id).run(await connectionP)
 }
 
-export async function createThang ({owner, name, collection}) {
+export async function createThang (args: WithoutId<Thang>): Promise<string> {
   const {generated_keys: [id]} = await r
     .table('thangs')
-    .insert({owner, name, collection, reated: Date.now()})
+    .insert({...args, created: Date.now()})
     .run(await connectionP)
   return id
 }
 
-export async function createThangCollection ({owners, name}) {
+export async function createThangCollection ({owners, name}: WithoutId<ThangCollection>): Promise<string> {
   const {generated_keys: [id]} = await r
     .table('thangCollections')
     .insert({owners, name, created: Date.now()})
@@ -54,7 +88,7 @@ export async function createThangCollection ({owners, name}) {
   return id
 }
 
-export async function createBooking ({owner, from, to, thang}) {
+export async function createBooking ({owner, from, to, thang}: WithoutId<Booking>): Promise<string> {
   const {generated_keys: [id]} = await r
     .table('bookings')
     .insert({owner, from, to, thang, created: Date.now()})
@@ -62,23 +96,42 @@ export async function createBooking ({owner, from, to, thang}) {
   return id
 }
 
-export async function createUser ({name, email}) {
+export async function createUser (profile: WithoutId<User>): Promise<string> {
   const {generated_keys: [id]} = await r
-    .table('thangs')
-    .insert({email, name, created: Date.now()})
+    .table('users')
+    .insert({...profile, created: Date.now()})
     .run(await connectionP)
   return id
 }
 
-export async function userThangs (id) {
+export async function updateUser (id: string, profile: $Shape<WithoutId<User>>): Promise<{ updated: number }> {
+  const res = await r
+    .table('users')
+    .get('id')
+    .update({...profile, updated: Date.now()})
+    .run(await connectionP)
+  return {updated: res.replaced}
+}
+
+export async function userFromEmail (email: string): Promise<?User> {
+  const res = await r
+    .table('users')
+    .filter(r.row('email').eq(email))
+    .limit(1)
+    .run(await connectionP)
+  const [user] = await res.toArray()
+  return user || null
+}
+
+export async function userThangs (id: string): Promise<Thang[]> {
   const res = await r
     .table('thangs')
-    .filter(r.row('owner').eq(id))
+    .filter(r.row('owners').contains(id))
     .run(await connectionP)
   return await res.toArray()
 }
 
-export async function collectionThangs (id) {
+export async function collectionThangs (id: string): Promise<Thang[]> {
   const res = await r
     .table('thangs')
     .filter(r.row('collection').eq(id))
@@ -86,7 +139,7 @@ export async function collectionThangs (id) {
   return await res.toArray()
 }
 
-export async function collectionOwners (id) {
+export async function collectionOwners (id: string): Promise<User[]> {
   return r
     .table('thangCollections')
     .get(id)
@@ -94,7 +147,15 @@ export async function collectionOwners (id) {
     .run(await connectionP)
 }
 
-export async function thangBookings (id) {
+export async function thangOwners (id: string): Promise<User[]> {
+  return r
+    .table('thangs')
+    .get(id)
+    .do(col => col('owners').map(id => r.table('users').get(id)))
+    .run(await connectionP)
+}
+
+export async function thangBookings (id: string): Promise<Booking[]> {
   const res = await r
     .table('bookings')
     .filter(r.row('thang').eq(id))
@@ -102,7 +163,7 @@ export async function thangBookings (id) {
   return res.toArray()
 }
 
-export async function userCollections (id) {
+export async function userCollections (id: string): Promise<ThangCollection[]> {
   const res = await r
     .table('thangCollections')
     .filter(r.row('owners').contains(id))
@@ -110,7 +171,7 @@ export async function userCollections (id) {
   return await res.toArray()
 }
 
-export async function deleteBooking (id) {
+export async function deleteBooking (id: string): Promise<number> {
   const {deleted} = await r
     .table('bookings')
     .get(id)
@@ -118,7 +179,8 @@ export async function deleteBooking (id) {
     .run(await connectionP)
   return deleted
 }
-export async function deleteThang (id) {
+
+export async function deleteThang (id: string): Promise<number> {
   const {deleted} = await r
     .table('thangs')
     .get(id)
@@ -126,7 +188,8 @@ export async function deleteThang (id) {
     .run(await connectionP)
   return deleted
 }
-export async function deleteThangCollection (id) {
+
+export async function deleteThangCollection (id: string): Promise<number> {
   const {deleted} = await r
     .table('thangCollections')
     .get(id)
@@ -135,17 +198,26 @@ export async function deleteThangCollection (id) {
   return deleted
 }
 
-async function* feedGenerator(feed) {
+async function* feedGenerator (feed) {
   while (true) {
     const v = await feed.next()
     yield v
   }
 }
 
-export async function thangBookingAdded (thang) {
+export async function thangBookingChanges (thang: string): Promise<AsyncIterator<{ type: 'add' | 'remove' | 'update', booking: Booking }>> {
   const res = await r
     .table('bookings')
     .filter(r.row('thang').eq(thang))
+    .changes({includeTypes: true})
+    .run(await connectionP)
+  return feedGenerator(res)
+}
+
+export async function userThangChanges (user: string): Promise<AsyncIterator<{ type: 'add' | 'remove' | 'update', thang: Thang }>> {
+  const res = await r
+    .table('thangs')
+    .filter(r.row('owners').contains(user))
     .changes({includeTypes: true})
     .run(await connectionP)
   return feedGenerator(res)

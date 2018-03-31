@@ -1,9 +1,11 @@
 {
+  "parser": "babel-eslint",
   "extends": [
     "standard",
     "standard-flow"
   ],
   "rules": {
+    "no-console": "error",
     "no-var": "error",
     "generator-star-spacing": 0,
     "no-use-before-define": 0

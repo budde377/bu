@@ -1,0 +1,14 @@
+{
+  "loading": "Loading",
+  "name": "Name",
+  "create": "Create",
+  "logout": "Logout",
+  "owner": "Owner",
+  "createThang.success": "Thang created with name {name}",
+  "listThangs.your": "Your thangs",
+  "listThangs.empty": "Found no thangs",
+  "thangView.error": "Something went wrong",
+  "thangView.notFound": "Thang not found",
+  "baseThang.header": "Select a thang",
+  "baseThang.description": "Select a thang in the menu on the left to start booking!"
+}

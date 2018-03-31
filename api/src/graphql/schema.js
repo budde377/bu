@@ -1,12 +1,8 @@
 // @flow
-import { GraphQLScalarType } from 'graphql'
-import { Kind } from 'graphql/language'
-
 import {
   user,
   thang,
   booking,
-  createUser,
   createThang,
   createBooking,
   userThangs,
@@ -19,20 +15,32 @@ import {
   deleteThangCollection,
   collectionOwners,
   thangBookings,
-  thangBookingAdded
+  thangBookingChanges,
+  thangOwners, userThangChanges
 } from '../db'
 import { makeExecutableSchema } from 'graphql-tools'
 
 const typeDefs = [
-`
-scalar Date
+  `
+
+type DateTime {
+  hour: Int
+  minute: Int
+  day: Int
+  month: Int
+  year: Int
+}
 
 type User {
   id: ID!
   name: String!
+  givenName: String,
+  familyName: String,
   thangs: [Thang]!
+  picture: String!
   collections: [ThangCollection]!
-  email: String
+  email: String!
+  timezone: String!
 }
 type ThangCollection {
   id: ID!
@@ -40,17 +48,33 @@ type ThangCollection {
   thangs: [Thang]!
   owners: [User]!
 }
+
+input DateTimeInput {
+  hour: Int
+  minute: Int
+  day: Int
+  month: Int
+  year: Int
+}
+
+input ListBookingsInput {
+  from: DateTimeInput
+  to: DateTimeInput
+  owner: ID
+}
+
 type Thang {
   id: ID!
   name: String!
   owners: [User]!
-  bookings(from: Date, to: Date, owner: ID): [Booking]!
+  bookings(input: ListBookingsInput): [Booking]!
   collection: ThangCollection
+  timezone: String!
 }
 type Booking {
   id: ID!
-  from: Date!
-  to: Date!
+  from: DateTime!
+  to: DateTime!
   owner: User!
   thang: Thang!
 }
@@ -64,56 +88,31 @@ type DeleteResult {
   deleted: Int
 }
 
-enum CreateThangErrorCode {
-  USER_NOT_LOGGED_IN
-}
-
-type CreateThangResult {
-  thang: Thang
-  error: CreateThangErrorCode
-}
-
-enum CreateThangCollectionErrorCode {
-  USER_NOT_LOGGED_IN
-}
-
-type CreateThangCollectionResult {
-  collection: ThangCollection
-  error: CreateThangCollectionErrorCode
-}
-
-enum CreateBookingErrorCode {
-  USER_NOT_LOGGED_IN
-}
-
-type CreateBookingResult {
-  booking: Booking
-  error: CreateBookingErrorCode
-}
-
-type CreateUserResult {
-  user: User
-}
-
 type Mutation {
-  createBooking(thang: ID!, from: Date!, to: Date!): CreateBookingResult!
-  createThang(name: String!): CreateThangResult!
-  createThangCollection(name: String!): CreateThangCollectionResult!
+  createBooking(thang: ID!, from: DateTimeInput!, to: DateTimeInput!): Booking!
+  createThang(name: String!, timezone: String): Thang!
+  createThangCollection(name: String!): ThangCollection!
   deleteThang(id: ID!): DeleteResult!
   deleteBooking(id: ID!): DeleteResult!
   deleteThangCollection(id: ID!): DeleteResult!
-  createUser(name: String!, email: String!): CreateUserResult!
 }
 
 type ChangeBooking {
-  addBooking: Booking
-  removeBooking: Booking
-  changeBooking: Booking
+  add: Booking
+  remove: Booking
+  change: Booking
+}
+
+type ChangeThang {
+  add: Thang
+  remove: Thang
+  change: Thang
 }
 
 
 type Subscription {
-  bookingsChange(thang: ID!, from: Date, to: Date, owner: ID): ChangeBooking!
+  bookingsChange(thang: ID!, input: ListBookingsInput): ChangeBooking!
+  myThangsChange: ChangeThang!
 }
 
 schema {
@@ -123,125 +122,157 @@ schema {
 }`
 ]
 
+async function* noop () {
+  await new Promise(() => {})
+}
+
+type CustomErrorCode = 'USER_NOT_LOGGED_IN'
+
+export class CustomError extends Error {
+  code: CustomErrorCode
+
+  constructor (message: string, code: CustomErrorCode) {
+    super(message)
+    this.code = code
+  }
+}
+
 const resolvers = {
   Subscription: {
     bookingsChange: {
       resolve: v => {
-        const {type, new_val, old_val} = v
+        const {type, new_val: newVal, old_val: oldVal} = v
         switch (type) {
           case 'add':
             return {
-              addBooking: new_val
+              add: newVal
             }
           case 'remove':
             return {
-              removeBooking: old_val
+              remove: oldVal
             }
           case 'change':
             return {
-              changeBooking: new_val
+              change: newVal
             }
         }
       },
-      subscribe: (ctx, {thang}) => thangBookingAdded(thang)
+      subscribe: (ctx, {thang}) => thangBookingChanges(thang)
+    },
+    myThangsChange: {
+      resolve: v => {
+        const {type, new_val: newVal, old_val: oldVal} = v
+        switch (type) {
+          case 'add':
+            return {
+              add: newVal
+            }
+          case 'remove':
+            return {
+              remove: oldVal
+            }
+          case 'change':
+            return {
+              change: newVal
+            }
+        }
+      },
+      subscribe: (ctx, {thang}, {currentUser}) => {
+        if (!currentUser) {
+          return noop() // TODO is this the right way?!
+        }
+        return userThangChanges(currentUser.id)
+      }
     }
   },
-  Date: new GraphQLScalarType({
-    name: 'Date',
-    description: 'Date custom scalar type',
-    parseValue(value) {
-      return new Date(value)
-    },
-    serialize(value) {
-      return value.getTime()
-    },
-    parseLiteral(ast) {
-      if (ast.kind === Kind.INT) {
-        return new Date(parseInt(ast.value, 10))
-      }
-      return null
-    },
-  }),
   Booking: {
-    async thang({thang: t}) {
+    async thang ({thang: t}) {
       return thang(t)
     },
-    async owner({owner}) {
+    async owner ({owner}) {
       return user(owner)
     }
   },
   Query: {
-    async thang(ctx, {id}) {
+    async thang (ctx, {id}) {
       return thang(id)
     },
-    user(ctx, {id}) {
+    user (ctx, {id}) {
       return user(id)
     },
-    me(ctx, args, {currentUser}) {
-      return user(currentUser)
+    me (ctx, args, {currentUser}) {
+      return currentUser
     }
   },
+
   User: {
-    async thangs({id}) {
-      return await userThangs(id)
+    async thangs ({id}) {
+      return userThangs(id)
     },
-    async collections({id}) {
+    async collections ({id}) {
       return await userCollections(id)
+    },
+    async email ({email}, args, {currentUser}) {
+      return currentUser && currentUser.email === email ? email : null
     }
   },
   Thang: {
-    async collection({collection}) {
+    async collection ({collection}) {
       return collection
         ? await thangCollection(collection)
         : null
     },
-    async bookings({id}) {
+    async bookings ({id}) {
       return thangBookings(id)
+    },
+    async owners ({id}) {
+      return await thangOwners(id)
     }
   },
   ThangCollection: {
-    async thangs({id}) {
+    async thangs ({id}) {
       return await collectionThangs(id)
     },
-    async owners({id}) {
+    async owners ({id}) {
       return await collectionOwners(id)
     }
   },
   Mutation: {
-    async createBooking(ctx, args, {currentUser}) {
+    async createBooking (ctx, args, {currentUser}) {
       if (!currentUser) {
-        return {error: 'USER_NOT_LOGGED_IN'}
+        throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
       }
-      const id = await createBooking({from: args.from, to: args.to, owner: currentUser, thang: args.thang})
-      return {booking: await booking(id)}
+      const id = await createBooking({from: args.from, to: args.to, owner: currentUser.id, thang: args.thang})
+      return booking(id)
     },
-    async createThang(ctx, args, {currentUser}) {
+    async createThang (ctx, args, {currentUser}) {
       if (!currentUser) {
-        return {error: 'USER_NOT_LOGGED_IN'}
+        throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
       }
-      const id = await createThang({name: args.name, owner: currentUser})
-      return {thang: await thang(id)}
+      const id = await createThang({
+        name: args.name,
+        owners: [currentUser.id],
+        collection: null,
+        timezone: currentUser.timezone
+      })
+      return thang(id)
     },
-    async createThangCollection(ctx, args, {currentUser}) {
+    async createThangCollection (ctx, args, {currentUser}) {
       if (!currentUser) {
-        return {error: 'USER_NOT_LOGGED_IN'}
+        throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
       }
-      const id = await createThangCollection({name: args.name, owners: [currentUser]})
-      return {collection: await thangCollection(id)}
+      const id = await createThangCollection({name: args.name, owners: [currentUser.id], thangs: []})
+      return thangCollection(id)
     },
-    async createUser(ctx, args) {
-      const id = await createUser({name: args.name, email: args.email})
-      return {user: await user(id)}
-    },
-    async deleteBooking(ctx, {id}) {
+    async deleteBooking (ctx, {id}) {
       const deleted = await deleteBooking(id)
       return {deleted}
     },
-    async deleteThang(ctx, {id}) {
+    async deleteThang (ctx, {id}) {
       const deleted = await deleteThang(id)
       return {deleted}
     },
-    async deleteThangCollection(ctx, {id}) {
+    async deleteThangCollection (ctx, {id}) {
       const deleted = await deleteThangCollection(id)
       return {deleted}
     }

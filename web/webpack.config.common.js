@@ -1,7 +1,5 @@
 const path = require('path')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
-const webpack = require('webpack')
-const config = require('config')
 
 module.exports = {
   entry: {
@@ -9,7 +7,7 @@ module.exports = {
   },
   plugins: [
     new HtmlWebpackPlugin({
-      title: 'Thangs.io',
+      title: 'Thang.io',
       chunksSortMode: 'manual',
       chunks: ['main']
     })
@@ -44,7 +42,6 @@ module.exports = {
           ]
         }
       },
-      {test: /\.json$/, loader: 'json-loader'},
       {
         test: /\.(svg|woff|woff2|png|eot|ttf)$/,
         loader: 'file-loader?name=themes/default/assets/fonts/[name].[ext]'
