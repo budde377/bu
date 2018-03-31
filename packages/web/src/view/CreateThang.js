@@ -5,6 +5,7 @@ import gql from 'graphql-tag'
 import { Mutation } from 'react-apollo'
 import { Button, Form, Message } from 'semantic-ui-react'
 import { withRouter } from 'react-router'
+import type { ContextRouter } from 'react-router'
 import { injectIntl, FormattedMessage } from 'react-intl'
 import type { InjectIntlProvidedProps } from 'react-intl'
 
@@ -17,7 +18,7 @@ const CREATE_THANG = gql`
     }
 `
 
-class CreateThang extends React.Component<InjectIntlProvidedProps, { name: string }> {
+class CreateThang extends React.Component<InjectIntlProvidedProps & ContextRouter, { name: string }> {
   state = {name: ''}
   _onChange = (evt: *, {value}) => this.setState({name: value})
 
