@@ -293,12 +293,10 @@ class BookingTableBody extends React.Component<{ now: moment, thang: string, boo
 
 class BookingTable extends React.Component<BookingTableProps> {
   _now: moment
-
   constructor (props: *) {
     super(props)
     this._now = moment.tz(props.timezone).hour(0).minute(0)
   }
-
   render () {
     const now = this._now
     return (
@@ -346,6 +344,7 @@ class BookingTable extends React.Component<BookingTableProps> {
         </Table.Header>
         <Query
           query={GET_BOOKINGS}
+          fetchPolicy='cache-and-network'
           variables={{from: momentToDt(now), to: momentToDt(now.clone().add(4)), thang: this.props.thang}}>
           {({loading, error, data, subscribeToMore}) => {
             return (
