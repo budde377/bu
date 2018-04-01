@@ -16,7 +16,7 @@ import {
   collectionOwners,
   thangBookings,
   thangBookingChanges,
-  thangOwners, userThangChanges
+  thangOwners, userThangChanges, thangUsers
 } from '../db'
 import { makeExecutableSchema } from 'graphql-tools'
 
@@ -65,6 +65,7 @@ type Thang {
   id: ID!
   name: String!
   owners: [User]!
+  users: [User]!
   bookings(input: ListBookingsInput): [Booking]!
   collection: ThangCollection
   timezone: String!
@@ -195,7 +196,7 @@ const resolvers = {
       return user(id)
     },
     me (ctx, args, {currentUser}) {
-      return currentUser
+      return currentUser && user(currentUser.id)
     }
   },
 
@@ -221,6 +222,9 @@ const resolvers = {
     },
     async owners ({id}) {
       return await thangOwners(id)
+    },
+    users ({id}) {
+      return thangUsers(id)
     }
   },
   ThangCollection: {

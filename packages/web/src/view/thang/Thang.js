@@ -19,6 +19,11 @@ const GET_THANG = gql`
                 id
                 picture
             }
+            users {
+                name
+                id
+                picture
+            }
         }
     }
 `
@@ -55,15 +60,26 @@ class BaseThang extends React.Component<*> {
                 {data.thang.name}
               </Header>
               <Label.Group>
-                {data.thang.owners.map(({name, id, picture}) => (
-                  <Label key={id} image>
-                    <img src={picture} />
-                    {name}
-                    <Label.Detail>
-                      <FormattedMessage id={'owner'} />
-                    </Label.Detail>
-                  </Label>
-                ))}
+                {data.thang.owners
+                  .map(({name, id, picture}) => (
+                    <Label key={id} image>
+                      <img src={picture} />
+                      {name}
+                      <Label.Detail>
+                        <FormattedMessage id={'owner'} />
+                      </Label.Detail>
+                    </Label>
+                  ))}
+                {data.thang.users
+                  .map(({name, id, picture}) => (
+                    <Label key={id} image>
+                      <img src={picture} />
+                      {name}
+                      <Label.Detail>
+                        <FormattedMessage id={'user'} />
+                      </Label.Detail>
+                    </Label>
+                  ))}
               </Label.Group>
               <BookingTable thang={data.thang.id} timezone={data.thang.timezone} />
             </div>

@@ -4,6 +4,7 @@
   "create": "Create",
   "logout": "Logout",
   "owner": "Owner",
+  "user": "User",
   "createThang.success": "Thang created with name {name}",
   "listThangs.your": "Your thangs",
   "listThangs.empty": "Found no thangs",

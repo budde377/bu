@@ -155,6 +155,16 @@ export async function thangOwners (id: string): Promise<User[]> {
     .run(await connectionP)
 }
 
+export async function thangUsers (id: string): Promise<User[]> {
+  return r
+    .table('bookings')
+    .filter(r.row('thang').eq(id))('owner')
+    .distinct()
+    .filter(u => r.table('thangs').get(id)('owners').contains(u).not())
+    .map(i => r.table('users').get(i))
+    .run(await connectionP)
+}
+
 export async function thangBookings (id: string): Promise<Booking[]> {
   const res = await r
     .table('bookings')
