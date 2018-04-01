@@ -199,9 +199,13 @@ export async function deleteThangCollection (id: string): Promise<number> {
 }
 
 async function* feedGenerator (feed) {
-  while (true) {
-    const v = await feed.next()
-    yield v
+  try {
+    while (true) {
+      const v = await feed.next()
+      yield v
+    }
+  } finally {
+    feed.close()
   }
 }
 
