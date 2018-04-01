@@ -18,6 +18,8 @@ app.use(async (ctx, next) => {
   ctx.body = `window.config = ${JSON.stringify(config)}`
 })
 
+app.use(serve(path.resolve(__dirname, '..', 'static')))
+
 app.use(serve(path.resolve(__dirname, '..', 'dist')))
 
 app.use(async (ctx) => {
