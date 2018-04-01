@@ -5,7 +5,7 @@ import config from 'config'
 
 const connectionP = r.connect(config.rethink).then(init)
 
-const requiredTables = [
+const requiredTables = [ // TODO more advanced init setup
   'users',
   'bookings',
   'thangs',
