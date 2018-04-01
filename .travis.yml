@@ -18,4 +18,4 @@ deploy:
   - provider: script
     script: lerna run build:docker
     on:
-      branch: master
+      branch: ./scripts/deploy.sh
