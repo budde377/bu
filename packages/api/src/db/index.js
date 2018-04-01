@@ -15,7 +15,9 @@ const requiredTables = [
 export type User = {
   id: string,
   name: string,
+  nickname: string,
   picture: string,
+  userId: string,
   email: string,
   emailVerified: boolean,
   givenName: ?string,

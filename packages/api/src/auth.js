@@ -37,7 +37,9 @@ function getKey () {
 
 type Profile = {
   name: string,
+  nickname: string,
   picture: string,
+  userId: string,
   email: string,
   emailVerified: boolean,
   givenName: ?string,
@@ -65,6 +67,8 @@ async function fetchProfile (token: string): Promise<?Profile> {
   }
   const {
     name,
+    nickname,
+    sub: userId,
     picture,
     email,
     email_verified: emailVerified,
@@ -73,6 +77,8 @@ async function fetchProfile (token: string): Promise<?Profile> {
   } = body
   if (
     !isString(name) ||
+    !isString(nickname) ||
+    !isString(userId) ||
     !isString(picture) ||
     !isString(email) ||
     !isBoolean(emailVerified) ||
@@ -83,6 +89,8 @@ async function fetchProfile (token: string): Promise<?Profile> {
   }
   return {
     name,
+    nickname,
+    userId,
     picture,
     email,
     emailVerified,
