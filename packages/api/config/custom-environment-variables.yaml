@@ -1,3 +1,7 @@
 
 rethink:
   host: 'RETHINK_HOST'
+
+port:
+  __name: PORT
+  __format: "json"

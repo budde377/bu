@@ -1,6 +1,7 @@
 // @flow
 import Koa from 'koa'
 import KoaRouter from 'koa-router'
+import logger from 'koa-logger'
 import koaBody from 'koa-bodyparser'
 import { graphqlKoa, graphiqlKoa } from 'apollo-server-koa'
 import config from 'config'
@@ -52,6 +53,7 @@ router.get(
 
 app.use(router.routes())
 app.use(router.allowedMethods())
+app.use(logger())
 const server = app.listen(config.port)
 
 // eslint-disable-next-line no-new
@@ -64,3 +66,6 @@ new SubscriptionServer({
   path: '/subscriptions',
   server
 })
+
+// eslint-disable-next-line no-console
+console.log(`Listening on port ${config.port}`)

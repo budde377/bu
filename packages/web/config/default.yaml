@@ -1,2 +1,12 @@
 port: 3000
 host: localhost
+auth:
+  domain: thang.eu.auth0.com
+  clientID: FgMrWfrKPBoiqOiWK0v5sUCH9j8dtXkA
+  redirectUri: http://localhost:4000/popup/callback
+  audience: https://api.thang.io/
+  responseType: token id_token
+  scope: openid email profile
+
+api:
+  base: http://localhost:3000

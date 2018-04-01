@@ -1,0 +1,32 @@
+#!/usr/bin/env node
+const Koa = require('koa')
+const path = require('path')
+const logger = require('koa-logger')
+const config = require('config')
+const serve = require('koa-static')
+const sendfile = require('koa-sendfile')
+
+const app = new Koa()
+
+app.use(logger())
+
+app.use(serve(path.resolve(__dirname, '..', 'dist')))
+
+app.use(async (ctx) => {
+  await sendfile(ctx, path.resolve(__dirname, '..', 'dist', 'index.html'))
+})
+
+app.use(async (ctx, next) => {
+  if (ctx.path !== '/config.js') {
+    return next()
+  }
+  ctx.set('content-type', 'application/javascript')
+  ctx.body = `window.config = ${JSON.stringify(config)}`
+})
+
+const port = config.get('port')
+
+app.listen(port, () => {
+// eslint-disable-next-line no-console
+  console.log(`Listening on port ${port}`)
+})

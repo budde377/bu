@@ -3,4 +3,4 @@ FROM node:9
 VOLUME /app
 WORKDIR /app
 
-CMD npm run dev
+CMD npm i && npm run dev

@@ -1,0 +1,21 @@
+sudo: required
+language: node_js
+node_js:
+- 0
+services:
+  - docker
+
+before_install:
+  - npm i -g lerna
+
+install:
+  - lerna bootstrap
+
+script:
+  - lerna run test
+
+deploy:
+  - provider: script
+    script: lerna run build:docker
+    on:
+      branch: master

@@ -1,0 +1,6 @@
+auth:
+  redirectUri: https://thang.io/popup/callback
+
+api:
+  base:
+    https://api.thang.io

@@ -1,15 +1,7 @@
 // @flow
 
 import auth0 from 'auth0-js'
-
-const config = {
-  domain: 'thang.eu.auth0.com',
-  clientID: 'FgMrWfrKPBoiqOiWK0v5sUCH9j8dtXkA',
-  redirectUri: 'http://localhost:4000/popup/callback',
-  audience: 'https://api.thang.io/',
-  responseType: 'token id_token',
-  scope: 'openid email profile'
-}
+import config from './config'
 
 type AuthResult = {
   token: string
@@ -26,7 +18,7 @@ export function validateAuthResult (data: mixed): ?AuthResult {
   return {token}
 }
 
-const auth = new auth0.WebAuth(config)
+const auth = new auth0.WebAuth(config.auth)
 
 const authResultKey = 'auth-result'
 

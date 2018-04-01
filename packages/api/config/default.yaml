@@ -1,4 +1,20 @@
 port: 3000
+
 rethink:
   db: test
   host: localhost
+
+auth:
+  verify:
+    algorithms:
+      - RS256
+    audience: https://api.thang.io/
+    issuer: https://thang.eu.auth0.com/
+  jwks:
+    strictSsl: true
+    jwksUri: https://thang.eu.auth0.com/.well-known/jwks.json
+  userInfoUrl: https://thang.eu.auth0.com/userinfo
+  cache:
+    max: 3000
+
+defaultTimezone: Europe/Copenhagen

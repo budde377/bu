@@ -1,0 +1,29 @@
+version: '3'
+services:
+  api:
+    build:
+      context: packages/api
+    environment:
+      RETHINK_HOST: rdb
+    restart: always
+    ports:
+      - 3000:3000
+    links:
+      - rdb
+  web:
+    build:
+      context: packages/web
+    restart: always
+    environment:
+      PORT: 4000
+      HOST: 0.0.0.0
+    ports:
+      - 4000:4000
+    links:
+      - api
+  rdb:
+    image: rethinkdb:latest
+    ports:
+      - 28015:28015
+      - 29015:29015
+      - 8080:8080

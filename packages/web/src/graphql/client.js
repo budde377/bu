@@ -7,6 +7,7 @@ import { WebSocketLink } from 'apollo-link-ws'
 import { split } from 'apollo-link/lib/index'
 import { getMainDefinition } from 'apollo-utilities'
 import { authResult } from '../auth'
+import config from '../config'
 
 const res = authResult()
 
@@ -20,12 +21,12 @@ function customFetch (uri, options) {
 
 const httpLink = createHttpLink({
   // $FlowFixMe: This is ok
-  uri: 'http://localhost:3000/graphql',
+  uri: `${config.api.base}/graphql`,
   fetch: customFetch
 })
 
 const wsLink = new WebSocketLink({
-  uri: 'ws://localhost:3000/subscriptions',
+  uri: `${config.api.base}/subscriptions`,
   options: {
     reconnect: true,
     connectionParams: {

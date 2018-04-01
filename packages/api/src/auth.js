@@ -6,27 +6,17 @@ import request from 'superagent'
 import type { User } from './db'
 import { createUser, updateUser, user, userFromEmail } from './db'
 import LRU from 'lru-cache'
+import config from 'config'
 
-const cache = LRU({
-  max: 3000
-})
+const cache = LRU(config.auth.cache)
 
-const jwksConfig = {
-  strictSsl: true,
-  jwksUri: 'https://thang.eu.auth0.com/.well-known/jwks.json'
-}
-
-const client = jwksClient(jwksConfig)
+const client = jwksClient(config.auth.jwks)
 
 async function verify (token: string): Promise<boolean> {
   const key = await getKey()
   return new Promise(resolve => {
     jwt.verify(token, key,
-      {
-        algorithms: ['RS256'],
-        audience: 'https://api.thang.io/',
-        issuer: 'https://thang.eu.auth0.com/'
-      },
+      config.auth.verify,
       err => resolve(!err))
   })
 }
@@ -70,7 +60,7 @@ function isBoolean (a): boolean %checks {
 
 async function fetchProfile (token: string): Promise<?Profile> {
   const {body}: { body: mixed } = await request
-    .get('https://thang.eu.auth0.com/userinfo')
+    .get(config.auth.userInfoUrl)
     .set('Authorization', `Bearer ${token}`)
   if (!isObject(body)) {
     return null
@@ -115,7 +105,7 @@ async function createOrUpdateUser (profile: Profile): Promise<string> {
     await updateUser(user.id, profile)
     return user.id
   }
-  const timezone = 'Europe/Copenhagen'
+  const timezone = config.defaultTimezone
   return await createUser({...profile, timezone})
 }
 

@@ -3,13 +3,14 @@ const HtmlWebpackPlugin = require('html-webpack-plugin')
 
 module.exports = {
   entry: {
+    config: './src/window-config.js',
     main: ['babel-polyfill', 'react-hot-loader/patch', './src/index.js']
   },
   plugins: [
     new HtmlWebpackPlugin({
       title: 'Thang.io',
       chunksSortMode: 'manual',
-      chunks: ['main']
+      chunks: ['config', 'main']
     })
   ],
   output: {

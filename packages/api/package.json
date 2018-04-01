@@ -4,6 +4,10 @@
   "description": "Thang.io",
   "main": "src/index.js",
   "scripts": {
+    "build:docker": "docker build -t thang-api:latest .",
+    "publish:docker": "docker push thang-api:latest",
+    "start": "node dist",
+    "build": "babel src -d dist --copy-files",
     "test:flow": "flow .",
     "test:lint": "eslint .",
     "test": "npm run test:flow && npm run test:lint",
@@ -35,6 +39,7 @@
     "jwks-rsa": "^1.2.1",
     "koa": "^2.5.0",
     "koa-bodyparser": "^4.2.0",
+    "koa-logger": "^3.2.0",
     "koa-router": "^7.4.0",
     "lru-cache": "^4.1.2",
     "moment-timezone": "^0.5.14",
