@@ -67,10 +67,7 @@ class LoginMenu extends React.Component<{}> {
 const MainMenu = () => (
   <Menu stackable style={{minHeight: '4em'}}>
     <Menu.Item as={Link} to={'/'}>
-      <Image style={{height: '2em'}} src={require('../../images/logo_icon.svg')} />
-      <span style={{paddingLeft: '1em'}}>
-        Thang.io
-      </span>
+      <Image style={{height: '2em'}} src={require('../../images/logo_named.svg')} />
     </Menu.Item>
     <Menu.Menu position={'right'}>
       <LoginMenu />

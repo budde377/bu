@@ -22,7 +22,6 @@ import { makeExecutableSchema } from 'graphql-tools'
 
 const typeDefs = [
   `
-
 type DateTime {
   hour: Int
   minute: Int
