@@ -2,7 +2,7 @@ version: '3'
 services:
   api:
     build:
-      context: packages/api
+      context: packages/api/
     environment:
       RETHINK_HOST: rdb
     restart: always
@@ -12,11 +12,13 @@ services:
       - rdb
   web:
     build:
-      context: packages/web
+      context: packages/web/
     restart: always
     environment:
       PORT: 4000
       HOST: 0.0.0.0
+      API_HTTP: http://localhost:3000
+      API_WS: ws://localhost:3000
     ports:
       - 4000:4000
     links:

@@ -6,7 +6,7 @@ WORKDIR /app
 
 EXPOSE 3000
 
-ENV NODE_ENV=production, PORT=3000
+ENV NODE_ENV=production PORT=3000
 
 RUN NODE_ENV=development npm i \
 &&  npm run build \

@@ -2,3 +2,7 @@ port:
   __name: PORT
   __format: "json"
 host: HOST
+
+api:
+  http: API_HTTP
+  ws: API_WS
