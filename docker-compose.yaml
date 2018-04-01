@@ -10,6 +10,10 @@ services:
       - 3000:3000
     links:
       - rdb
+    entrypoint:
+      - sh
+      - -c
+      - NODE_ENV=development npm install && npm start
   web:
     build:
       context: packages/web/
@@ -17,8 +21,8 @@ services:
     environment:
       PORT: 4000
       HOST: 0.0.0.0
-      API_HTTP: http://localhost:3000
-      API_WS: ws://localhost:3000
+      API_HTTP: http://localhost:3002
+      API_WS: ws://localhost:3002
     ports:
       - 4000:4000
     links:

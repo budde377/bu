@@ -1,4 +1,5 @@
 // @flow
+import 'babel-polyfill'
 import Koa from 'koa'
 import KoaRouter from 'koa-router'
 import logger from 'koa-logger'

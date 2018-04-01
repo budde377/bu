@@ -121,10 +121,6 @@ schema {
 }`
 ]
 
-async function* noop () {
-  await new Promise(() => {})
-}
-
 type CustomErrorCode = 'USER_NOT_LOGGED_IN'
 
 export class CustomError extends Error {
@@ -178,7 +174,7 @@ const resolvers = {
       },
       subscribe: (ctx, {thang}, {currentUser}) => {
         if (!currentUser) {
-          return noop() // TODO is this the right way?!
+          throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
         }
         return userThangChanges(currentUser.id)
       }
