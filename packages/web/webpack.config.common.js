@@ -1,5 +1,7 @@
 const path = require('path')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
+const config = require('config')
+const webpack = require('webpack')
 
 module.exports = {
   entry: {
@@ -11,6 +13,9 @@ module.exports = {
       title: 'Thang.io',
       chunksSortMode: 'manual',
       chunks: ['config', 'main']
+    }),
+    new webpack.DefinePlugin({
+      'CONFIG': JSON.stringify(config)
     })
   ],
   output: {

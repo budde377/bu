@@ -21,12 +21,12 @@ function customFetch (uri, options) {
 
 const httpLink = createHttpLink({
   // $FlowFixMe: This is ok
-  uri: `${config.api.base}/graphql`,
+  uri: `${config.api.http}/graphql`,
   fetch: customFetch
 })
 
 const wsLink = new WebSocketLink({
-  uri: `${config.api.base}/subscriptions`,
+  uri: `${config.api.ws}/subscriptions`,
   options: {
     reconnect: true,
     connectionParams: {

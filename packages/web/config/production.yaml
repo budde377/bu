@@ -2,5 +2,7 @@ auth:
   redirectUri: https://thang.io/popup/callback
 
 api:
-  base:
+  ws:
+    wss://api.thang.io
+  http:
     https://api.thang.io
