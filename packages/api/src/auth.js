@@ -102,7 +102,10 @@ async function fetchProfile (token: string): Promise<?Profile> {
 async function createOrUpdateUser (profile: Profile): Promise<string> {
   const user = await userFromEmail(profile.email)
   if (user) {
-    await updateUser(user.id, profile)
+    const p = profile.email === profile.name
+      ? {emailVerified: profile.emailVerified}
+      : profile
+    await updateUser(user.id, p)
     return user.id
   }
   const timezone = config.defaultTimezone
