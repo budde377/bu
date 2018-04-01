@@ -45,7 +45,7 @@ export function login () {
 
 export function callback (hash: string): Promise<AuthResult> {
   return new Promise((resolve, reject) => {
-    auth.parseHash(hash, (err, data) => {
+    auth.parseHash({hash}, (err, data) => {
       if (err) {
         return reject(err)
       }
