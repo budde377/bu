@@ -4,8 +4,8 @@
   "description": "Thang.io",
   "main": "src/index.js",
   "scripts": {
-    "build:docker": "docker build -t thang-api:latest .",
-    "publish:docker": "docker push thang-api:latest",
+    "build:docker": "docker build -t budde377/thang-api:latest .",
+    "publish:docker": "docker push budde377/thang-api:latest",
     "start": "node dist",
     "build": "babel src -d dist --copy-files",
     "test:flow": "flow .",
