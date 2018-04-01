@@ -6,6 +6,6 @@
 		"ci": "lerna exec -- npm ci",
 		"test": "lerna run test",
 		"build:docker": "lerna run build:docker",
-		"publish:docker": "lerna run build:docker"
+		"publish:docker": "lerna run publish:docker"
 	}
 }
