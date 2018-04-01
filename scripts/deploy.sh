@@ -3,5 +3,5 @@
 set -e
 
 docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
-lerna run build:docker
-lerna run publish:docker
+npm run build:docker
+npm run publish:docker

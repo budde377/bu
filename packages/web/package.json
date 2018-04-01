@@ -1,6 +1,4 @@
 {
-  "name": "thang-web",
-  "version": "0.0.1",
   "description": "Thang.io",
   "main": "src/index.js",
   "scripts": {

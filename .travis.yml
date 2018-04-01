@@ -6,16 +6,17 @@ services:
   - docker
 
 before_install:
-  - npm i -g lerna
+  - npm i -g npm@latest
+  - npm ci
 
 install:
-  - lerna bootstrap
+  - npm run ci
 
 script:
-  - lerna run test
+  - npm test
 
 deploy:
   - provider: script
-    script: lerna run build:docker
+    script: ./scripts/deploy.sh
     on:
-      branch: ./scripts/deploy.sh
+      branch: master
