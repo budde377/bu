@@ -291,14 +291,24 @@ class BookingTableBody extends React.Component<{ now: moment, thang: string, boo
   }
 }
 
+function dtToString (dt: Dt) {
+  return `${dt.year}.${dt.month}.${dt.day}.${dt.hour}.${dt.minute}`
+}
+
 class BookingTable extends React.Component<BookingTableProps> {
   _now: moment
+
   constructor (props: *) {
     super(props)
     this._now = moment.tz(props.timezone).hour(0).minute(0)
   }
+
   render () {
     const now = this._now
+    const from = momentToDt(now)
+    const to = momentToDt(now.clone().add(4))
+    const variables = {from, to, thang: this.props.thang}
+    const key = `${this.props.thang}.${dtToString(from)}.${dtToString(to)}` // Force remount when vars change
     return (
       <Table definition>
         <Table.Header>
@@ -343,16 +353,17 @@ class BookingTable extends React.Component<BookingTableProps> {
           </Table.Row>
         </Table.Header>
         <Query
+          key={key}
           query={GET_BOOKINGS}
           fetchPolicy='cache-and-network'
-          variables={{from: momentToDt(now), to: momentToDt(now.clone().add(4)), thang: this.props.thang}}>
+          variables={variables}>
           {({loading, error, data, subscribeToMore}) => {
             return (
               <BookingTableBody
                 subscribe={() =>
                   subscribeToMore({
                     document: SUBSCRIBE_BOOKINGS,
-                    variables: {from: momentToDt(now), to: momentToDt(now.clone().add(4)), thang: this.props.thang},
+                    variables,
                     updateQuery: (prev, {subscriptionData}) => {
                       if (!subscriptionData.data) return prev
                       const {bookingsChange: {add, change, remove}} = subscriptionData.data

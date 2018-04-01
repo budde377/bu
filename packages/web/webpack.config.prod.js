@@ -3,6 +3,7 @@ const CommonConfig = require('./webpack.config.common')
 const webpack = require('webpack')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin')
+const FaviconsWebpackPlugin = require('favicons-webpack-plugin')
 
 module.exports = function (env) {
   return Merge(CommonConfig, {
@@ -19,6 +20,7 @@ module.exports = function (env) {
       ]
     },
     plugins: [
+      new FaviconsWebpackPlugin('./images/logo_icon.png'),
       new MiniCssExtractPlugin({
         filename: '[name].[chunkhash].css'
       }),

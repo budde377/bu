@@ -2,7 +2,6 @@ const path = require('path')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const config = require('config')
 const webpack = require('webpack')
-const FaviconsWebpackPlugin = require('favicons-webpack-plugin')
 
 module.exports = {
   entry: {
@@ -17,8 +16,7 @@ module.exports = {
     }),
     new webpack.DefinePlugin({
       'CONFIG': JSON.stringify(config)
-    }),
-    new FaviconsWebpackPlugin('./images/logo_icon.png')
+    })
   ],
   output: {
     filename: '[name].js',
