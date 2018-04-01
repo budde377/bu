@@ -16,7 +16,8 @@ script:
   - npm test
 
 deploy:
-  - provider: script
-    script: ./scripts/deploy.sh
-    on:
-      branch: master
+  provider: script
+  skip_cleanup: true
+  script: ./scripts/deploy.sh
+  on:
+    branch: master
