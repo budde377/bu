@@ -34,6 +34,7 @@ type DateTime {
 type User {
   id: ID!
   name: String!
+  nickname: String!
   givenName: String,
   familyName: String,
   thangs: [Thang]!
@@ -80,7 +81,7 @@ type Booking {
 }
 type Query {
   thang(id: ID!): Thang
-  user(id: ID!): User
+  user(id: ID, email: String): User
   me: User
 }
 
@@ -193,8 +194,14 @@ const resolvers = {
     async thang (ctx, {id}) {
       return thang(id)
     },
-    user (ctx, {id}) {
-      return userFromId(id)
+    user (ctx, {id, email}) {
+      if (id) {
+        return userFromId(id)
+      }
+      if (email) {
+        return user(email)
+      }
+      return null
     },
     me (ctx, args, {currentUser}) {
       return currentUser && user(currentUser.email)

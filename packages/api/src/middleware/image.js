@@ -1,6 +1,6 @@
 import KoaRouter from 'koa-router'
 import compose from 'koa-compose'
-import { user, userFromId } from '../db'
+import { userFromId } from '../db'
 import type { User } from '../db'
 import { identiconFromString } from '../util/identicon'
 
@@ -21,7 +21,5 @@ function userPicture (uf: (s: string) => Promise<?User>, f: (ctx: *) => string) 
 }
 
 router.get('/i/id/:id', userPicture(userFromId, ctx => ctx.params.id))
-
-router.get('/i/email/:email', userPicture(user, ctx => ctx.params.email))
 
 export default compose([router.routes(), router.allowedMethods()])
