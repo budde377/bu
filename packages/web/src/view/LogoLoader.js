@@ -77,6 +77,8 @@ class LogoLoader extends React.Component<{}, { currentColors: Colors, step: numb
     transition: '0.5s fill'
   }
   _interval: ?IntervalID
+  _c1 = '#FA4659'
+  _c2 = '#11CBD7'
 
   _updateColors () {
     this.setState(({step}) => ({step: (step + 1) % steps.length, currentColors: steps[(step + 1) % steps.length]}))
@@ -97,31 +99,31 @@ class LogoLoader extends React.Component<{}, { currentColors: Colors, step: numb
       <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 2000 2000' style={{height: '100%', width: '100%'}}>
         <circle
           cx='205.8' cy='205.8' r='205.8'
-          style={{...this._style, fill: this.state.currentColors[0][0] ? '#42ccb8' : '#848484'}} />
+          style={{...this._style, fill: this.state.currentColors[0][0] ? this._c1 : this._c2}} />
         <circle
           cx='205.8' cy='955' r='205.8'
-          style={{...this._style, fill: this.state.currentColors[1][0] ? '#42ccb8' : '#848484'}} />
+          style={{...this._style, fill: this.state.currentColors[1][0] ? this._c1 : this._c2}} />
         <circle
           cx='205.8' cy='1794.2' r='205.8'
-          style={{...this._style, fill: this.state.currentColors[2][0] ? '#42ccb8' : '#848484'}} />
+          style={{...this._style, fill: this.state.currentColors[2][0] ? this._c1 : this._c2}} />
         <circle
           cx='1000' cy='205.8' r='205.8'
-          style={{...this._style, fill: this.state.currentColors[0][1] ? '#42ccb8' : '#848484'}} />
+          style={{...this._style, fill: this.state.currentColors[0][1] ? this._c1 : this._c2}} />
         <circle
           cx='1000' cy='955' r='205.8'
-          style={{...this._style, fill: this.state.currentColors[1][1] ? '#42ccb8' : '#848484'}} />
+          style={{...this._style, fill: this.state.currentColors[1][1] ? this._c1 : this._c2}} />
         <circle
           cx='1000' cy='1794.2' r='205.8'
-          style={{...this._style, fill: this.state.currentColors[2][1] ? '#42ccb8' : '#848484'}} />
+          style={{...this._style, fill: this.state.currentColors[2][1] ? this._c1 : this._c2}} />
         <circle
           cx='1794.2' cy='205.8' r='205.8'
-          style={{...this._style, fill: this.state.currentColors[0][2] ? '#42ccb8' : '#848484'}} />
+          style={{...this._style, fill: this.state.currentColors[0][2] ? this._c1 : this._c2}} />
         <circle
           cx='1794.2' cy='955' r='205.8'
-          style={{...this._style, fill: this.state.currentColors[1][2] ? '#42ccb8' : '#848484'}} />
+          style={{...this._style, fill: this.state.currentColors[1][2] ? this._c1 : this._c2}} />
         <circle
           cx='1794.2' cy='1794.2' r='205.8'
-          style={{...this._style, fill: this.state.currentColors[2][2] ? '#42ccb8' : '#848484'}} />
+          style={{...this._style, fill: this.state.currentColors[2][2] ? this._c1 : this._c2}} />
       </svg>
     )
   }
