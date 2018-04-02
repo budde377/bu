@@ -16,7 +16,7 @@ import {
   collectionOwners,
   thangBookings,
   thangBookingChanges,
-  thangOwners, userThangChanges, thangUsers, userFromId
+  thangOwners, userThangChanges, thangUsers, userFromId, createVisitLogEntry, visitLogEntry
 } from '../db'
 import { makeExecutableSchema } from 'graphql-tools'
 import config from 'config'
@@ -90,12 +90,19 @@ type DeleteResult {
   deleted: Int
 }
 
+type VisitLogEntry {
+  id: ID!
+  thang: Thang!
+  user: User!
+}
+
 type Mutation {
   createBooking(thang: ID!, from: DateTimeInput!, to: DateTimeInput!): Booking!
   createThang(name: String!, timezone: String): Thang!
   createThangCollection(name: String!): ThangCollection!
   deleteThang(id: ID!): DeleteResult!
   deleteBooking(id: ID!): DeleteResult!
+  visitThang(id: ID!): VisitLogEntry!
   deleteThangCollection(id: ID!): DeleteResult!
 }
 
@@ -255,6 +262,11 @@ const resolvers = {
       return await collectionOwners(id)
     }
   },
+  VisitLogEntry: {
+    async thang ({thang: id}) {
+      return thang(id)
+    }
+  },
   Mutation: {
     async createBooking (ctx, args, {currentUser}) {
       if (!currentUser) {
@@ -293,6 +305,13 @@ const resolvers = {
     async deleteThangCollection (ctx, {id}) {
       const deleted = await deleteThangCollection(id)
       return {deleted}
+    },
+    async visitThang (ctx, {id}, {currentUser}) {
+      if (!currentUser) {
+        throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
+      }
+      const i = await createVisitLogEntry(id, currentUser.email)
+      return visitLogEntry(i)
     }
   }
 }

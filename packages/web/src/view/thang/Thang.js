@@ -7,6 +7,7 @@ import { Query } from 'react-apollo'
 import gql from 'graphql-tag'
 import BookingTable from './BookingTable'
 import { FormattedMessage } from 'react-intl'
+import LogVisit from '../LogVisit'
 
 const GET_THANG = gql`
     query getThang($id: ID!){
@@ -59,6 +60,7 @@ class BaseThang extends React.Component<*> {
               <Header>
                 {data.thang.name}
               </Header>
+              <LogVisit thang={data.thang.id} />
               <Label.Group>
                 {data.thang.owners
                   .map(({displayName, id, picture}) => (

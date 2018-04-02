@@ -9,6 +9,7 @@ const requiredTables = { // TODO more advanced init setup
   users: r.tableCreate('users', {primaryKey: 'email'}),
   bookings: r.tableCreate('bookings'),
   thangs: r.tableCreate('thangs'),
+  visitLog: r.tableCreate('visitLog'),
   thangCollections: r.tableCreate('thangCollections')
 }
 
@@ -41,13 +42,25 @@ type ThangCollection = {
   thangs: string[],
   owners: string[]
 }
+type Dt = {
+  month: number,
+  hour: number,
+  day: number,
+  minute: number,
+  year: number
+}
 
 type Booking = {
   id: string,
-  from: Date,
-  to: Date,
+  from: Dt,
+  to: Dt,
   owner: string,
   thang: string
+}
+
+type VisitLogEntry = {
+  thang: string,
+  user: string
 }
 
 type WithoutId<V> = $Diff<V, { id: string }>
@@ -74,6 +87,10 @@ export async function thangCollection (id: string): Promise<?ThangCollection> {
 
 export async function booking (id: string): Promise<?Booking> {
   return await r.table('bookings').get(id).run(await connectionP)
+}
+
+export async function visitLogEntry (id: string): Promise<?VisitLogEntry> {
+  return await r.table('visitLog').get(id).run(await connectionP)
 }
 
 export async function createThang (args: WithoutId<Thang>): Promise<string> {
@@ -106,6 +123,14 @@ export async function createUser (profile: User): Promise<{ created: number }> {
     .insert({...profile, created: Date.now()})
     .run(await connectionP)
   return {created}
+}
+
+export async function createVisitLogEntry (thang: string, user: string): Promise<string> {
+  const {generated_keys: [id]} = await r
+    .table('visitLog')
+    .insert({thang, user, created: Date.now()})
+    .run(await connectionP)
+  return id
 }
 
 export async function updateUser (email: string, profile: $Shape<User>): Promise<{ updated: number }> {
