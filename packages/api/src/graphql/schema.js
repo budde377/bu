@@ -16,9 +16,10 @@ import {
   collectionOwners,
   thangBookings,
   thangBookingChanges,
-  thangOwners, userThangChanges, thangUsers
+  thangOwners, userThangChanges, thangUsers, userFromId
 } from '../db'
 import { makeExecutableSchema } from 'graphql-tools'
+import config from 'config'
 
 const typeDefs = [
   `
@@ -193,22 +194,25 @@ const resolvers = {
       return thang(id)
     },
     user (ctx, {id}) {
-      return user(id)
+      return userFromId(id)
     },
     me (ctx, args, {currentUser}) {
-      return currentUser && user(currentUser.id)
+      return currentUser && user(currentUser.email)
     }
   },
 
   User: {
-    async thangs ({id}) {
-      return userThangs(id)
+    async thangs ({email}) {
+      return userThangs(email)
     },
-    async collections ({id}) {
-      return await userCollections(id)
+    async collections ({email}) {
+      return await userCollections(email)
     },
     async email ({email}, args, {currentUser}) {
       return currentUser && currentUser.email === email ? email : null
+    },
+    async picture ({id}) {
+      return `${config.url.http}/i/id/${id}`
     }
   },
   Thang: {

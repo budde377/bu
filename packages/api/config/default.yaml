@@ -18,3 +18,6 @@ auth:
     max: 3000
 
 defaultTimezone: Europe/Copenhagen
+
+url:
+  http: http://localhost:3000

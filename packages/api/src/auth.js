@@ -2,11 +2,14 @@
 import jwksClient from 'jwks-rsa'
 import jwt from 'jsonwebtoken'
 import jwkToPem from 'jwk-to-pem'
-import request from 'superagent'
-import type { User } from './db'
-import { createUser, updateUser, user, userFromEmail } from './db'
+import fetch from 'node-fetch'
+import type { Picture, User } from './db'
+import { createUser, updateUser, user } from './db'
 import LRU from 'lru-cache'
 import config from 'config'
+import { logError } from './util/error'
+
+const uuidv4 = require('uuid/v4')
 
 const cache = LRU(config.auth.cache)
 
@@ -38,7 +41,7 @@ function getKey () {
 type Profile = {
   name: string,
   nickname: string,
-  picture: string,
+  picture: ?Picture,
   userId: string,
   email: string,
   emailVerified: boolean,
@@ -58,10 +61,47 @@ function isBoolean (a): boolean %checks {
   return typeof a === 'boolean'
 }
 
+const fetchCache: { [string]: Promise<?Profile> } = {}
+
+function cachedFetchProfile (token: string): Promise<?Profile> {
+  if (fetchCache[token]) {
+    return fetchCache[token]
+  }
+  const res = fetchProfile(token)
+  fetchCache[token] = res
+  res.then(res => {
+    if (fetchCache[token] !== res) {
+      return
+    }
+    delete fetchCache[token]
+  })
+  return res
+}
+
+async function fetchPicture (url: string): Promise<?Picture> {
+  try {
+    const res = await fetch(url)
+    const mime = res.headers.get('Content-Type')
+    if (!mime) {
+      return null
+    }
+    const data = await res.buffer()
+    return {data, mime, fetched: Date.now()}
+  } catch (err) {
+    logError(err)
+    return null
+  }
+}
+
 async function fetchProfile (token: string): Promise<?Profile> {
-  const {body}: { body: mixed } = await request
-    .get(config.auth.userInfoUrl)
-    .set('Authorization', `Bearer ${token}`)
+  const res = await fetch(
+    config.auth.userInfoUrl,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+  const body: mixed = await res.json()
   if (!isObject(body)) {
     return null
   }
@@ -69,7 +109,7 @@ async function fetchProfile (token: string): Promise<?Profile> {
     name,
     nickname,
     sub: userId,
-    picture,
+    picture: pictureUrl,
     email,
     email_verified: emailVerified,
     given_name: givenName,
@@ -79,7 +119,7 @@ async function fetchProfile (token: string): Promise<?Profile> {
     !isString(name) ||
     !isString(nickname) ||
     !isString(userId) ||
-    !isString(picture) ||
+    !isString(pictureUrl) ||
     !isString(email) ||
     !isBoolean(emailVerified) ||
     (givenName !== undefined && !isString(givenName)) ||
@@ -87,6 +127,9 @@ async function fetchProfile (token: string): Promise<?Profile> {
   ) {
     return null
   }
+  const picture = name !== email
+    ? await fetchPicture(pictureUrl)
+    : null
   return {
     name,
     nickname,
@@ -100,16 +143,18 @@ async function fetchProfile (token: string): Promise<?Profile> {
 }
 
 async function createOrUpdateUser (profile: Profile): Promise<string> {
-  const user = await userFromEmail(profile.email)
-  if (user) {
+  const u = await user(profile.email)
+  if (u) {
     const p = profile.email === profile.name
       ? {emailVerified: profile.emailVerified}
       : profile
-    await updateUser(user.id, p)
-    return user.id
+    await updateUser(u.email, p)
+    return u.id
   }
   const timezone = config.defaultTimezone
-  return await createUser({...profile, timezone})
+  const id = uuidv4()
+  await createUser({...profile, id, timezone})
+  return id
 }
 
 export async function tokenToUser (token: string): Promise<?User> {
@@ -117,12 +162,12 @@ export async function tokenToUser (token: string): Promise<?User> {
   if (!valid) {
     return null
   }
-  const profile = await fetchProfile(token)
+  const profile = await cachedFetchProfile(token)
   if (!profile) {
     return null
   }
-  const id = await createOrUpdateUser(profile)
-  return user(id)
+  await createOrUpdateUser(profile)
+  return user(profile.email)
 }
 
 export async function cachedTokenToUser (token: string): Promise<?User> {

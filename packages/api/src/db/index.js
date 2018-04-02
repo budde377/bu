@@ -5,18 +5,20 @@ import config from 'config'
 
 const connectionP = r.connect(config.rethink).then(init)
 
-const requiredTables = [ // TODO more advanced init setup
-  'users',
-  'bookings',
-  'thangs',
-  'thangCollections'
-]
+const requiredTables = { // TODO more advanced init setup
+  users: r.tableCreate('users', {primaryKey: 'email'}),
+  bookings: r.tableCreate('bookings'),
+  thangs: r.tableCreate('thangs'),
+  thangCollections: r.tableCreate('thangCollections')
+}
+
+export type Picture = { data: Buffer, mime: string, fetched: number }
 
 export type User = {
   id: string,
   name: string,
   nickname: string,
-  picture: string,
+  picture: ?Picture,
   userId: string,
   email: string,
   emailVerified: boolean,
@@ -51,13 +53,15 @@ type Booking = {
 type WithoutId<V> = $Diff<V, { id: string }>
 
 async function init (conn) {
+  const db = config.rethink.db
+  await r.dbList().contains(db).branch(null, r.dbCreate(db)).run(conn)
   const tables = await r.tableList().run(conn)
-  await Promise.all(requiredTables.map(t => tables.indexOf(t) >= 0 ? null : r.tableCreate(t).run(conn)))
+  await Promise.all(Object.keys(requiredTables).map(t => tables.indexOf(t) >= 0 ? null : requiredTables[t].run(conn)))
   return conn
 }
 
-export async function user (id: string): Promise<?User> {
-  return await r.table('users').get(id).run(await connectionP)
+export async function user (email: string): Promise<?User> {
+  return await r.table('users').get(email).run(await connectionP)
 }
 
 export async function thang (id: string): Promise<?Thang> {
@@ -96,37 +100,39 @@ export async function createBooking ({owner, from, to, thang}: WithoutId<Booking
   return id
 }
 
-export async function createUser (profile: WithoutId<User>): Promise<string> {
-  const {generated_keys: [id]} = await r
+export async function createUser (profile: User): Promise<{ created: number }> {
+  const {created} = await r
     .table('users')
     .insert({...profile, created: Date.now()})
     .run(await connectionP)
-  return id
+  return {created}
 }
 
-export async function updateUser (id: string, profile: $Shape<WithoutId<User>>): Promise<{ updated: number }> {
+export async function updateUser (email: string, profile: $Shape<User>): Promise<{ updated: number }> {
+  const p = {...profile}
+  delete p.email
   const res = await r
     .table('users')
-    .get('id')
-    .update({...profile, updated: Date.now()})
+    .get(email)
+    .update({...p, updated: Date.now()})
     .run(await connectionP)
   return {updated: res.replaced}
 }
 
-export async function userFromEmail (email: string): Promise<?User> {
+export async function userFromId (id: string): Promise<?User> {
   const res = await r
     .table('users')
-    .filter(r.row('email').eq(email))
+    .filter(r.row('id').eq(id))
     .limit(1)
     .run(await connectionP)
   const [user] = await res.toArray()
   return user || null
 }
 
-export async function userThangs (id: string): Promise<Thang[]> {
+export async function userThangs (email: string): Promise<Thang[]> {
   const res = await r
     .table('thangs')
-    .filter(r.row('owners').contains(id))
+    .filter(r.row('owners').contains(email))
     .run(await connectionP)
   return await res.toArray()
 }
@@ -173,10 +179,10 @@ export async function thangBookings (id: string): Promise<Booking[]> {
   return res.toArray()
 }
 
-export async function userCollections (id: string): Promise<ThangCollection[]> {
+export async function userCollections (email: string): Promise<ThangCollection[]> {
   const res = await r
     .table('thangCollections')
-    .filter(r.row('owners').contains(id))
+    .filter(r.row('owners').contains(email))
     .run(await connectionP)
   return await res.toArray()
 }
@@ -228,10 +234,10 @@ export async function thangBookingChanges (thang: string): Promise<AsyncIterator
   return feedGenerator(res)
 }
 
-export async function userThangChanges (user: string): Promise<AsyncIterator<{ type: 'add' | 'remove' | 'update', thang: Thang }>> {
+export async function userThangChanges (email: string): Promise<AsyncIterator<{ type: 'add' | 'remove' | 'update', thang: Thang }>> {
   const res = await r
     .table('thangs')
-    .filter(r.row('owners').contains(user))
+    .filter(r.row('owners').contains(email))
     .changes({includeTypes: true})
     .run(await connectionP)
   return feedGenerator(res)
