@@ -191,7 +191,7 @@ const App = () => (
   <Switch>
     <Route path={'/popup'} component={PopupApp} />
     <Route path={'/thangs'} component={MainApp} />
-    <Redirect from={'/'} to={'/thangs'} />
+    <Redirect from='/' to='/thangs' />
   </Switch>
 )
 

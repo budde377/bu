@@ -1,5 +1,6 @@
 {
   "loading": "Loading",
+  "loggingIn": "Logging you in...",
   "name": "Name",
   "create": "Create",
   "logout": "Logout",

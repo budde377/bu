@@ -3,7 +3,8 @@
 import React from 'react'
 import { callback, updateAuth } from '../../auth'
 import { withRouter } from 'react-router'
-import { Loader } from 'semantic-ui-react'
+import LogoLoader from '../LogoLoader'
+import { FormattedMessage } from 'react-intl'
 
 class Callback extends React.Component<*> {
   async componentDidMount () {
@@ -17,9 +18,14 @@ class Callback extends React.Component<*> {
 
   render () {
     return (
-      <Loader active>
-        Logging in
-      </Loader>
+      <div style={{textAlign: 'center', padding: '10% 0'}}>
+        <div style={{height: '4em', width: '4em', margin: 'auto'}}>
+          <LogoLoader />
+        </div>
+        <div style={{padding: '2em 0'}}>
+          <FormattedMessage id='loggingIn' />
+        </div>
+      </div>
     )
   }
 }
