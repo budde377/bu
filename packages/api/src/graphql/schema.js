@@ -33,16 +33,16 @@ type DateTime {
 
 type User {
   id: ID!
-  name: String!
-  nickname: String!
+  name: String
+  nickname: String
   givenName: String
   familyName: String
   displayName: String!
-  thangs: [Thang]!
+  thangs: [Thang]
   picture: String!
-  collections: [ThangCollection]!
-  email: String!
-  timezone: String!
+  collections: [ThangCollection]
+  email: String
+  timezone: String
 }
 type ThangCollection {
   id: ID!
@@ -125,6 +125,12 @@ schema {
 ]
 
 type CustomErrorCode = 'USER_NOT_LOGGED_IN'
+
+function checkEmail (f) {
+  return (ctx, arg, {currentUser}) => currentUser && currentUser.email === ctx.email
+    ? f(ctx)
+    : null
+}
 
 export class CustomError extends Error {
   code: CustomErrorCode
@@ -210,15 +216,14 @@ const resolvers = {
   },
 
   User: {
-    async thangs ({email}) {
-      return userThangs(email)
-    },
-    async collections ({email}) {
-      return await userCollections(email)
-    },
-    async email ({email}, args, {currentUser}) {
-      return currentUser && currentUser.email === email ? email : null
-    },
+    thangs: checkEmail(({email}) => userThangs(email)),
+    collections: checkEmail(({email}) => userCollections(email)),
+    email: checkEmail(({email}) => email),
+    timezone: checkEmail(({timezone}) => timezone),
+    name: checkEmail(({name}) => name),
+    nickname: checkEmail(({nickname}) => nickname),
+    givenName: checkEmail(({givenName}) => givenName),
+    familyName: checkEmail(({familyName}) => familyName),
     async picture ({id}) {
       return `${config.url.http}/i/id/${id}`
     },
