@@ -383,7 +383,7 @@ class BookingTable extends React.Component<BookingTableProps> {
                 }
                 now={now}
                 thang={this.props.thang}
-                bookings={data.thang ? data.thang.bookings : null} />
+                bookings={data && data.thang ? data.thang.bookings : null} />
             )
           }}
         </Query>

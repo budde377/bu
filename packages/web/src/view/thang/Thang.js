@@ -58,6 +58,9 @@ class ThangUsers extends React.Component<{ thang: string }> {
               <Loader active />
             )
           }
+          if (error) {
+            return null
+          }
           if (!data.thang) {
             return null
           }
