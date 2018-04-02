@@ -11,9 +11,9 @@ function userPicture (uf: (s: string) => Promise<?User>, f: (ctx: *) => string) 
     const id = f(ctx)
     const u = await uf(id)
     if (!u) {
-      next()
+      return next()
     }
-    const {data, mime, fetched} = u.picture || identiconFromString(id)
+    const {data, mime, fetched} = u.picture || identiconFromString(u.email)
     ctx.body = data
     ctx.type = mime
     ctx.set('ETag', fetched.toString())
