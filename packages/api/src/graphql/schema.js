@@ -38,17 +38,17 @@ type User {
   givenName: String
   familyName: String
   displayName: String!
-  thangs: [Thang]
+  thangs: [Thang!]
   picture: String!
-  collections: [ThangCollection]
+  collections: [ThangCollection!]
   email: String
   timezone: String
 }
 type ThangCollection {
   id: ID!
   name: String!
-  thangs: [Thang]!
-  owners: [User]!
+  thangs: [Thang!]!
+  owners: [User!]!
 }
 
 input DateTimeInput {
@@ -67,9 +67,9 @@ input ListBookingsInput {
 type Thang {
   id: ID!
   name: String!
-  owners: [User]!
-  users: [User]!
-  bookings(input: ListBookingsInput): [Booking]!
+  owners: [User!]!
+  users: [User!]!
+  bookings(input: ListBookingsInput): [Booking!]!
   collection: ThangCollection
   timezone: String!
 }
@@ -185,7 +185,7 @@ const resolvers = {
         if (!currentUser) {
           throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
         }
-        return userThangChanges(currentUser.id)
+        return userThangChanges(currentUser.email)
       }
     }
   },
@@ -260,7 +260,7 @@ const resolvers = {
       if (!currentUser) {
         throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
       }
-      const id = await createBooking({from: args.from, to: args.to, owner: currentUser.id, thang: args.thang})
+      const id = await createBooking({from: args.from, to: args.to, owner: currentUser.email, thang: args.thang})
       return booking(id)
     },
     async createThang (ctx, args, {currentUser}) {
@@ -269,7 +269,7 @@ const resolvers = {
       }
       const id = await createThang({
         name: args.name,
-        owners: [currentUser.id],
+        owners: [currentUser.email],
         collection: null,
         timezone: currentUser.timezone
       })
@@ -279,7 +279,7 @@ const resolvers = {
       if (!currentUser) {
         throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
       }
-      const id = await createThangCollection({name: args.name, owners: [currentUser.id], thangs: []})
+      const id = await createThangCollection({name: args.name, owners: [currentUser.email], thangs: []})
       return thangCollection(id)
     },
     async deleteBooking (ctx, {id}) {

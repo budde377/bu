@@ -15,12 +15,12 @@ const GET_THANG = gql`
             name
             timezone
             owners {
-                name
+                displayName
                 id
                 picture
             }
             users {
-                name
+                displayName
                 id
                 picture
             }
@@ -61,20 +61,20 @@ class BaseThang extends React.Component<*> {
               </Header>
               <Label.Group>
                 {data.thang.owners
-                  .map(({name, id, picture}) => (
+                  .map(({displayName, id, picture}) => (
                     <Label key={id} image>
                       <img src={picture} />
-                      {name}
+                      {displayName}
                       <Label.Detail>
                         <FormattedMessage id={'owner'} />
                       </Label.Detail>
                     </Label>
                   ))}
                 {data.thang.users
-                  .map(({name, id, picture}) => (
+                  .map(({displayName, id, picture}) => (
                     <Label key={id} image>
                       <img src={picture} />
-                      {name}
+                      {displayName}
                       <Label.Detail>
                         <FormattedMessage id={'user'} />
                       </Label.Detail>
