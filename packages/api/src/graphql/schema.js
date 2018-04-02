@@ -35,8 +35,9 @@ type User {
   id: ID!
   name: String!
   nickname: String!
-  givenName: String,
-  familyName: String,
+  givenName: String
+  familyName: String
+  displayName: String!
   thangs: [Thang]!
   picture: String!
   collections: [ThangCollection]!
@@ -220,6 +221,9 @@ const resolvers = {
     },
     async picture ({id}) {
       return `${config.url.http}/i/id/${id}`
+    },
+    async displayName ({nickname, givenName}) {
+      return givenName || nickname
     }
   },
   Thang: {
