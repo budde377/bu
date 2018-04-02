@@ -2,7 +2,7 @@
   "description": "Thang.io",
   "main": "src/index.js",
   "scripts": {
-    "build:docker": "docker build -t budde377/thang-web:latest .",
+    "build:docker": "[ -z $VERSION ] && docker build --build-arg VERSION=$VERSION -t budde377/thang-web:latest . || docker build --build-arg $VERSION -t budde377/thang-web:latest .",
     "publish:docker": "docker push budde377/thang-web:latest",
     "start": "./bin/www",
     "build": "NODE_ENV=production webpack  --progress --profile --no-colors --config webpack.config.prod.js",

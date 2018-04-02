@@ -1,1 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000 2000"><title>logo_icon</title><circle cx="1000" cy="955" r="205.8" fill="#42ccb8"/><circle cx="1000" cy="205.8" r="205.8" fill="#42ccb8"/><circle cx="1000" cy="1794.2" r="205.8" fill="#42ccb8"/><circle cx="205.8" cy="955" r="205.8" fill="#848484"/><circle cx="205.8" cy="205.8" r="205.8" fill="#42ccb8"/><circle cx="205.8" cy="1794.2" r="205.8" fill="#848484"/><circle cx="1794.2" cy="955" r="205.8" fill="#848484"/><circle cx="1794.2" cy="205.8" r="205.8" fill="#42ccb8"/><circle cx="1794.2" cy="1794.2" r="205.8" fill="#848484"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000 2000">
+    <circle cx="1000" cy="955" r="205.8" fill="#42ccb8"/>
+    <circle cx="1000" cy="205.8" r="205.8" fill="#42ccb8"/>
+    <circle cx="1000" cy="1794.2" r="205.8" fill="#42ccb8"/>
+    <circle cx="205.8" cy="955" r="205.8" fill="#848484"/>
+    <circle cx="205.8" cy="205.8" r="205.8" fill="#42ccb8"/>
+    <circle cx="205.8" cy="1794.2" r="205.8" fill="#848484"/>
+    <circle cx="1794.2" cy="955" r="205.8" fill="#848484"/>
+    <circle cx="1794.2" cy="205.8" r="205.8" fill="#42ccb8"/>
+    <circle cx="1794.2" cy="1794.2" r="205.8" fill="#848484"/>
+</svg>

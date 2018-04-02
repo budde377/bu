@@ -1,12 +1,11 @@
 FROM node:9-alpine
 
-ADD . /app
-
-WORKDIR /app
-
+ARG VERSION=latest
+ENV NODE_ENV=production PORT=3000
 EXPOSE 3000
 
-ENV NODE_ENV=production PORT=3000
+ADD . /app
+WORKDIR /app
 
 RUN NODE_ENV=development npm i \
 &&  npm run build \
