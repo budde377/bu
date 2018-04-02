@@ -16,7 +16,12 @@ import {
   collectionOwners,
   thangBookings,
   thangBookingChanges,
-  thangOwners, userThangChanges, thangUsers, userFromId, createVisitLogEntry, visitLogEntry
+  thangOwners,
+  userThangChanges,
+  userFromId,
+  createVisitLogEntry,
+  visitLogEntry,
+  thangAddUser, thangUsers, thangChange
 } from '../db'
 import { makeExecutableSchema } from 'graphql-tools'
 import config from 'config'
@@ -122,6 +127,7 @@ type ChangeThang {
 type Subscription {
   bookingsChange(thang: ID!, input: ListBookingsInput): ChangeBooking!
   myThangsChange: ChangeThang!
+  thangChange(thang: ID!): ChangeThang!
 }
 
 schema {
@@ -148,51 +154,46 @@ export class CustomError extends Error {
   }
 }
 
+function resolve (change) {
+  const {type, new_val: newVal, old_val: oldVal} = change
+  switch (type) {
+    case 'add':
+      return {
+        add: newVal
+      }
+    case 'remove':
+      return {
+        remove: oldVal
+      }
+    case 'change':
+      return {
+        change: newVal
+      }
+  }
+}
+
 const resolvers = {
   Subscription: {
     bookingsChange: {
-      resolve: v => {
-        const {type, new_val: newVal, old_val: oldVal} = v
-        switch (type) {
-          case 'add':
-            return {
-              add: newVal
-            }
-          case 'remove':
-            return {
-              remove: oldVal
-            }
-          case 'change':
-            return {
-              change: newVal
-            }
-        }
-      },
+      resolve,
       subscribe: (ctx, {thang}) => thangBookingChanges(thang) // TODO use from and to
     },
     myThangsChange: {
-      resolve: v => {
-        const {type, new_val: newVal, old_val: oldVal} = v
-        switch (type) {
-          case 'add':
-            return {
-              add: newVal
-            }
-          case 'remove':
-            return {
-              remove: oldVal
-            }
-          case 'change':
-            return {
-              change: newVal
-            }
-        }
-      },
-      subscribe: (ctx, {thang}, {currentUser}) => {
+      resolve,
+      subscribe: (ctx, args, {currentUser}) => {
         if (!currentUser) {
           throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
         }
         return userThangChanges(currentUser.email)
+      }
+    },
+    thangChange: {
+      resolve,
+      subscribe: (ctx, {thang}, {currentUser}) => {
+        if (!currentUser) {
+          throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
+        }
+        return thangChange(thang)
       }
     }
   },
@@ -273,6 +274,7 @@ const resolvers = {
         throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
       }
       const id = await createBooking({from: args.from, to: args.to, owner: currentUser.email, thang: args.thang})
+      await thangAddUser(args.thang, currentUser.email)
       return booking(id)
     },
     async createThang (ctx, args, {currentUser}) {
@@ -282,6 +284,7 @@ const resolvers = {
       const id = await createThang({
         name: args.name,
         owners: [currentUser.email],
+        users: [currentUser.email],
         collection: null,
         timezone: currentUser.timezone
       })

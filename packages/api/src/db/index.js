@@ -32,6 +32,7 @@ type Thang = {
   id: string,
   name: string,
   owners: string[],
+  users: string[],
   collection: ?string,
   timezone: string
 }
@@ -144,6 +145,21 @@ export async function updateUser (email: string, profile: $Shape<User>): Promise
   return {updated: res.replaced}
 }
 
+export async function thangAddUser (id: string, email: string): Promise<{ updated: number }> {
+  const res = await r
+    .table('thangs')
+    .get(id)
+    .update({
+      users: r.row('users')
+        .contains(email)
+        .branch(
+          r.row('users'),
+          r.row('users').append(email))
+    })
+    .run(await connectionP)
+  return {updated: res.replaced}
+}
+
 export async function userFromId (id: string): Promise<?User> {
   const res = await r
     .table('users')
@@ -188,11 +204,9 @@ export async function thangOwners (id: string): Promise<User[]> {
 
 export async function thangUsers (id: string): Promise<User[]> {
   return r
-    .table('bookings')
-    .filter(r.row('thang').eq(id))('owner')
-    .distinct()
-    .filter(u => r.table('thangs').get(id)('owners').contains(u).not())
-    .map(i => r.table('users').get(i))
+    .table('thangs')
+    .get(id)
+    .do(col => col('users').map(id => r.table('users').get(id)))
     .run(await connectionP)
 }
 
@@ -263,6 +277,15 @@ export async function userThangChanges (email: string): Promise<AsyncIterator<{ 
   const res = await r
     .table('thangs')
     .filter(r.row('owners').contains(email))
+    .changes({includeTypes: true})
+    .run(await connectionP)
+  return feedGenerator(res)
+}
+
+export async function thangChange (thang: string): Promise<AsyncIterator<{ type: 'add' | 'remove' | 'update', thang: Thang }>> {
+  const res = await r
+    .table('thangs')
+    .get(thang)
     .changes({includeTypes: true})
     .run(await connectionP)
   return feedGenerator(res)
