@@ -20,7 +20,10 @@ module.exports = function (env) {
       ]
     },
     plugins: [
-      new FaviconsWebpackPlugin('./images/logo_icon.png'),
+      new FaviconsWebpackPlugin({
+        logo: './images/logo_icon.png',
+        background: 'transparent'
+      }),
       new MiniCssExtractPlugin({
         filename: '[name].[chunkhash].css'
       }),
