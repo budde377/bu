@@ -3,11 +3,22 @@ const CommonConfig = require('./webpack.config.common')
 const webpack = require('webpack')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin')
-const FaviconsWebpackPlugin = require('favicons-webpack-plugin')
 
 module.exports = function (env) {
   return Merge(CommonConfig, {
     mode: 'production',
+    optimization: {
+      splitChunks: {
+        cacheGroups: {
+          styles: {
+            name: 'styles',
+            test: /\.css$/,
+            chunks: 'all',
+            enforce: true
+          }
+        }
+      }
+    },
     module: {
       rules: [
         {
@@ -20,12 +31,8 @@ module.exports = function (env) {
       ]
     },
     plugins: [
-      new FaviconsWebpackPlugin({
-        logo: './images/logo_icon.png',
-        background: 'transparent'
-      }),
       new MiniCssExtractPlugin({
-        filename: '[name].[chunkhash].css'
+        filename: '[name].css'
       }),
       new webpack.LoaderOptionsPlugin({
         minimize: true,

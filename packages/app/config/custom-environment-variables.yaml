@@ -4,5 +4,9 @@ port:
 host: HOST
 
 api:
-  http: API_HTTP
-  ws: API_WS
+  client:
+    http: API_CLIENT_HTTP
+    ws: API_CLIENT_WS
+  server:
+    http: API_SERVER_HTTP
+    ws: API_SERVER_WS

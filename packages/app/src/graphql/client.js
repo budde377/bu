@@ -1,18 +1,17 @@
 // @flow
 
-import ApolloClient from 'apollo-client/index'
+import ApolloClient from 'apollo-client'
 import { InMemoryCache } from 'apollo-cache-inmemory'
 import { createHttpLink } from 'apollo-link-http'
 import { WebSocketLink } from 'apollo-link-ws'
-import { split } from 'apollo-link/lib/index'
+import { split } from 'apollo-link'
 import { getMainDefinition } from 'apollo-utilities'
-import { authResult } from '../auth'
-import config from '../config'
+import type {Config} from '../view/Html'
 
-const res = authResult()
+const config: Config = window.__CONFIG__
 
 function customFetch (uri, options) {
-  const r = authResult()
+  const r = ''
   if (r) {
     options.headers.authentication = `Bearer ${r.token}`
   }
@@ -30,7 +29,7 @@ const wsLink = new WebSocketLink({
   options: {
     reconnect: true,
     connectionParams: {
-      authToken: res && res.token
+      authToken: ''
     }
   }
 })
@@ -46,7 +45,8 @@ const link = split(
 
 const client = new ApolloClient({
   link,
-  cache: new InMemoryCache()
+  ssrForceFetchDelay: 100,
+  cache: new InMemoryCache().restore(window.__APOLLO_STATE__)
 })
 
 export default client

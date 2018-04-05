@@ -1,15 +1,17 @@
 {
   "description": "Thang.io",
-  "main": "src/index.js",
   "scripts": {
     "build:docker": "[ -z $VERSION ] && docker build --build-arg VERSION=$VERSION -t budde377/thang-app:latest . || docker build -t budde377/thang-app:latest .",
     "publish:docker": "docker push budde377/thang-app:latest",
-    "start": "./bin/www",
-    "build": "NODE_ENV=production webpack  --progress --profile --no-colors --config webpack.config.prod.js",
+    "build:server": "NODE_ENV=production webpack  --progress --profile --no-colors --config webpack.config.server.js",
+    "build": "NODE_ENV=production webpack  --progress --profile --no-colors --config webpack.config.js",
+    "start": "node dist/server",
+    "start:server": "NODE_ENV=development webpack --watch --config webpack.config.server.js & nodemon -w dist/server dist/server",
+    "start:client": "NODE_ENV=development webpack-dev-server --config webpack.config.dev.js  --hot",
     "test:flow": "flow .",
     "test:lint": "eslint .",
     "test": "npm run test:flow && npm run test:lint",
-    "dev": "NODE_ENV=development webpack-dev-server --config webpack.config.dev.js  --hot"
+    "dev": "npm run start:client & npm run start:server"
   },
   "repository": {
     "type": "git",
@@ -40,7 +42,6 @@
     "js-yaml": "^3.11.0",
     "koa": "^2.5.0",
     "koa-logger": "^3.2.0",
-    "koa-sendfile": "^2.0.0",
     "koa-static": "^4.0.2",
     "moment-timezone": "^0.5.14",
     "react": "^16.3.0",
@@ -78,7 +79,6 @@
     "flow-bin": "^0.69.0",
     "flow-typed": "^2.4.0",
     "html-webpack-plugin": "^3.1.0",
-    "json-loader": "^0.5.7",
     "mini-css-extract-plugin": "^0.4.0",
     "nodemon": "^1.17.2",
     "react-hot-loader": "^4.0.0",
@@ -87,6 +87,7 @@
     "webpack": "^4.4.1",
     "webpack-cli": "^2.0.13",
     "webpack-dev-server": "^3.1.1",
-    "webpack-merge": "^4.1.2"
+    "webpack-merge": "^4.1.2",
+    "webpack-node-externals": "^1.7.2"
   }
 }

@@ -9,5 +9,9 @@ auth:
   scope: openid email profile
 
 api:
-  http: http://localhost:3000
-  ws: ws://localhost:3000
+  client:
+    http: http://localhost:3000
+    ws: ws://localhost:3000
+  server:
+    http: http://api:3000
+    ws: ws://api:3000

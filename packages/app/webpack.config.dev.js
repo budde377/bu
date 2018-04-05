@@ -22,14 +22,14 @@ module.exports = Merge(CommonConfig, {
     ]
   },
   devServer: {
-    contentBase: path.join(__dirname, 'dist'),
-    port: config.port,
-    host: config.host,
-    index: 'index.html',
-    historyApiFallback: {
-      rewrites: [
-        {from: '/*', to: '/index.html'}
-      ]
-    }
+    proxy: {
+      '/': {
+        target: `http://localhost:${config.port}`,
+        changeOrigin: true
+      }
+    },
+    contentBase: path.join(__dirname, 'dist', 'client'),
+    port: config.port + 1,
+    host: config.host
   }
 })

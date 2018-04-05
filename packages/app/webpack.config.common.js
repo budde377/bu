@@ -1,26 +1,14 @@
 const path = require('path')
-const HtmlWebpackPlugin = require('html-webpack-plugin')
-const config = require('config')
-const webpack = require('webpack')
 
 module.exports = {
   entry: {
-    config: './src/window-config.js',
-    main: ['babel-polyfill', 'react-hot-loader/patch', './src/index.js']
+    main: ['babel-polyfill', 'react-hot-loader/patch', './src/client.js']
   },
   plugins: [
-    new HtmlWebpackPlugin({
-      title: 'Thang',
-      chunksSortMode: 'manual',
-      chunks: ['config', 'main']
-    }),
-    new webpack.DefinePlugin({
-      'CONFIG': JSON.stringify(config)
-    })
   ],
   output: {
     filename: '[name].js',
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, 'dist', 'client'),
     publicPath: '/'
   },
   module: {
@@ -50,7 +38,7 @@ module.exports = {
       },
       {
         test: /\.(svg|woff|woff2|png|eot|ttf)$/,
-        loader: 'file-loader?name=themes/default/assets/fonts/[name].[ext]'
+        loader: 'file-loader'
       }
     ]
   }

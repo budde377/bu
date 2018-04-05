@@ -1,18 +1,17 @@
 // @flow
-
 import React from 'react'
 import { Query } from 'react-apollo'
 import gql from 'graphql-tag'
-import 'semantic-ui-css/semantic.min.css'
-import LoginButton from './auth/LoginButton'
 import { Redirect, Route, Switch } from 'react-router'
-import PopupApp from './popup'
 import { Link, NavLink } from 'react-router-dom'
 import { Container, Dropdown, Image, Menu } from 'semantic-ui-react'
-import { logout } from '../auth'
 import CreateThang from './CreateThang'
 import Thang from './thang'
-import { FormattedMessage } from 'react-intl'
+import { FormattedMessage, addLocaleData, IntlProvider } from 'react-intl'
+import englishLocaleData from 'react-intl/locale-data/en'
+import messages from '../../locale/en.json'
+
+addLocaleData(englishLocaleData)
 
 const GET_ME = gql`
     query {
@@ -26,8 +25,6 @@ const GET_ME = gql`
 `
 
 class LoginMenu extends React.Component<{}> {
-  _logout = () => logout()
-
   render () {
     return (
       <Query query={GET_ME}>
@@ -39,7 +36,7 @@ class LoginMenu extends React.Component<{}> {
           if (!me) {
             return (
               <Menu.Item>
-                <LoginButton />
+                Login
               </Menu.Item>
             )
           }
@@ -52,7 +49,7 @@ class LoginMenu extends React.Component<{}> {
                 </span>
               </div>}>
               <Dropdown.Menu>
-                <Dropdown.Item onClick={this._logout}>
+                <Dropdown.Item>
                   <FormattedMessage id={'logout'} />
                 </Dropdown.Item>
               </Dropdown.Menu>
@@ -188,11 +185,12 @@ const MainApp = () => (
 )
 
 const App = () => (
-  <Switch>
-    <Route path={'/popup'} component={PopupApp} />
-    <Route path={'/thangs'} component={MainApp} />
-    <Redirect from='/' to='/thangs' />
-  </Switch>
+  <IntlProvider locale={'en'} messages={messages}>
+    <Switch>
+      <Route path={'/thangs'} component={MainApp} />
+      <Redirect from='/' to='/thangs' />
+    </Switch>
+  </IntlProvider>
 )
 
 export default App

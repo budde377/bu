@@ -10,13 +10,9 @@ services:
       - 3000:3000
     links:
       - rdb
-    entrypoint:
-      - sh
-      - -c
-      - NODE_ENV=development npm install && npm start
-  web:
+  app:
     build:
-      context: packages/web/
+      context: packages/app/
     restart: always
     environment:
       PORT: 4000

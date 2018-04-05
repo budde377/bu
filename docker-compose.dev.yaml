@@ -13,9 +13,9 @@ services:
       - ./packages/api:/app:rw
     links:
       - rdb
-  web:
+  app:
     build:
-      context: packages/web
+      context: packages/app
       dockerfile: Dockerfile.dev
     restart: always
     environment:
@@ -24,9 +24,10 @@ services:
       PORT: 4000
       HOST: 0.0.0.0
     ports:
+      - 4001:4001
       - 4000:4000
     volumes:
-      - ./packages/web:/app:rw
+      - ./packages/app:/app:rw
     links:
       - api
   rdb:
