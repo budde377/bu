@@ -1,7 +1,7 @@
 {
   "description": "Thang.io",
   "scripts": {
-    "build:docker": "[ -z $VERSION ] && docker build --build-arg VERSION=$VERSION -t budde377/thang-app:latest . || docker build -t budde377/thang-app:latest .",
+    "build:docker": "docker build --build-arg VERSION=$VERSION -t budde377/thang-app:latest .",
     "publish:docker": "docker push budde377/thang-app:latest",
     "build:server": "NODE_ENV=production webpack  --progress --profile --no-colors --config webpack.config.server.js",
     "build": "NODE_ENV=production webpack  --progress --profile --no-colors --config webpack.config.js",

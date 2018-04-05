@@ -2,7 +2,7 @@
   "description": "Thang.io",
   "main": "src/index.js",
   "scripts": {
-    "build:docker": "[ -z $VERSION ] && docker build --build-arg VERSION=$VERSION -t budde377/thang-api:latest . || docker build -t budde377/thang-api:latest .",
+    "build:docker": "docker build --build-arg VERSION=$VERSION -t budde377/thang-api:latest .",
     "publish:docker": "docker push budde377/thang-api:latest",
     "start": "node dist",
     "build": "babel src -d dist --copy-files",
