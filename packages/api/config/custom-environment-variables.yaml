@@ -5,3 +5,5 @@ rethink:
 port:
   __name: PORT
   __format: "json"
+
+version: VERSION

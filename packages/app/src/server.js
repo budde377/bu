@@ -67,5 +67,5 @@ const port = config.get('port')
 
 app.listen(port, () => {
   // eslint-disable-next-line no-console
-  console.log(`Listening on port ${port}`)
+  console.log(`Listening on port ${port} - version ${config.version}`)
 })

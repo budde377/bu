@@ -15,3 +15,5 @@ api:
   server:
     http: http://api:3000
     ws: ws://api:3000
+
+version: latest

@@ -10,3 +10,5 @@ api:
   server:
     http: API_SERVER_HTTP
     ws: API_SERVER_WS
+
+version: VERSION

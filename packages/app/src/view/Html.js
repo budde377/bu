@@ -8,6 +8,7 @@ export type Config = {
 export default ({content, config, apolloState}: { apolloState: *, content: string, config: Config}) => (
   <html>
     <head>
+      <title>Thang.io</title>
       {process.env.NODE_ENV === 'production' ? <script src={'/styles.js'} async /> : null}
       {process.env.NODE_ENV === 'production' ? <link rel={'stylesheet'} type={'text/css'} href={'/styles.css'} /> : null}
       <script

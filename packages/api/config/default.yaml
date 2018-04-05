@@ -21,3 +21,5 @@ defaultTimezone: Europe/Copenhagen
 
 url:
   http: http://localhost:3000
+
+version: latest

@@ -45,4 +45,4 @@ new SubscriptionServer({
 })
 
 // eslint-disable-next-line no-console
-console.log(`Listening on port ${config.port}`)
+console.log(`Listening on port ${config.port} - version ${config.version}`)
