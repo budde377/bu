@@ -7,6 +7,12 @@ EXPOSE 3000
 ADD . /app
 WORKDIR /app
 
+RUN addgroup -S buddy \
+&&  adduser -S -g buddy buddy \
+&&  chown -R buddy /app
+
+USER buddy
+
 RUN NODE_ENV=development npm i \
 &&  npm run build \
 &&  rm -rf node_modules \
