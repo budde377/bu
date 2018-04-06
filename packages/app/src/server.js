@@ -2,6 +2,8 @@
 import React from 'react'
 import Koa from 'koa'
 import logger from 'koa-logger'
+import compress from 'koa-compress'
+import etag from 'koa-etag'
 import serve from 'koa-static'
 import path from 'path'
 import config from 'config'
@@ -15,6 +17,7 @@ import { createHttpLink } from 'apollo-link-http'
 import { getDataFromTree, ApolloProvider } from 'react-apollo'
 import fetch from 'node-fetch'
 const app = new Koa()
+
 function gqlClient () {
   return new ApolloClient({
     ssrMode: true,
@@ -28,10 +31,11 @@ function gqlClient () {
 }
 
 app.use(logger())
+app.use(compress()) // Compress!
+app.use(etag()) // Add ETag
 
-app.use(serve(path.resolve('static')))
-
-app.use(serve(path.resolve('dist', 'client')))
+app.use(serve(path.join('dist', 'client'), {maxage: 1000 * 60 * 60 * 24})) // Cache 1d
+app.use(serve('static', {maxage: 1000 * 60 * 60 * 24 * 7})) // Cache 1w
 
 app.use(async (ctx) => {
   const client = gqlClient()
