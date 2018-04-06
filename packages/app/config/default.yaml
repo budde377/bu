@@ -17,3 +17,16 @@ api:
     ws: ws://api:3000
 
 version: latest
+
+session:
+  key: thang-sesh
+  rolling: true
+  maxAge: 86400000
+
+server:
+  keys:
+    - foobar
+
+redis:
+  host: redis
+  port: 6379

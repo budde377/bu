@@ -30,9 +30,12 @@ services:
       - ./packages/app:/app:rw
     links:
       - api
+      - redis
   rdb:
     image: rethinkdb:latest
     ports:
       - 28015:28015
       - 29015:29015
       - 8080:8080
+  redis:
+    image: redis:latest
