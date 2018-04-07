@@ -74,6 +74,14 @@ async function init (conn) {
   return conn
 }
 
+export async function reset () {
+  if (process.env.NODE_ENV !== 'test') {
+    throw new Error('Will not reset with NODE_ENV != test')
+  }
+  await r.dbDrop(config.rethink.db).run(await connectionP)
+  await init(await connectionP)
+}
+
 export async function user (email: string): Promise<?User> {
   return await r.table('users').get(email).run(await connectionP)
 }
@@ -119,11 +127,11 @@ export async function createBooking ({owner, from, to, thang}: WithoutId<Booking
 }
 
 export async function createUser (profile: User): Promise<{ created: number }> {
-  const {created} = await r
+  const res = await r
     .table('users')
     .insert({...profile, created: Date.now()})
     .run(await connectionP)
-  return {created}
+  return {created: res.created}
 }
 
 export async function createVisitLogEntry (thang: string, user: string): Promise<string> {

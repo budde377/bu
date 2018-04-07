@@ -24,7 +24,7 @@ import {
   thangAddUser, thangUsers, thangChange
 } from '../db'
 import { makeExecutableSchema } from 'graphql-tools'
-import config from 'config'
+import { userPicture } from '../util/communications'
 
 const typeDefs = [
   `
@@ -43,9 +43,9 @@ type User {
   givenName: String
   familyName: String
   displayName: String!
-  thangs: [Thang!]
+  thangs: [Thang!]!
   picture: String!
-  collections: [ThangCollection!]
+  collections: [ThangCollection!]!
   email: String
   emailVerified: Boolean
   timezone: String
@@ -140,10 +140,10 @@ schema {
 
 type CustomErrorCode = 'USER_NOT_LOGGED_IN' | 'USER_EMAIL_NOT_VERIFIED'
 
-function checkEmail (f) {
+function checkEmail (f, defaultValue = null) {
   return (ctx, arg, {currentUser}) => currentUser && currentUser.email === ctx.email
     ? f(ctx)
-    : null
+    : defaultValue
 }
 
 export class CustomError extends Error {
@@ -243,8 +243,8 @@ const resolvers = {
   },
 
   User: {
-    thangs: checkEmail(({email}) => userThangs(email)),
-    collections: checkEmail(({email}) => userCollections(email)),
+    thangs: checkEmail(({email}) => userThangs(email), []),
+    collections: checkEmail(({email}) => userCollections(email), []),
     email: checkEmail(({email}) => email),
     emailVerified: checkEmail(({emailVerified}) => emailVerified),
     timezone: checkEmail(({timezone}) => timezone),
@@ -252,8 +252,8 @@ const resolvers = {
     nickname: checkEmail(({nickname}) => nickname),
     givenName: checkEmail(({givenName}) => givenName),
     familyName: checkEmail(({familyName}) => familyName),
-    async picture ({id}) {
-      return `${config.url.http}/i/id/${id}`
+    async picture (user) {
+      return userPicture(user)
     },
     async displayName ({nickname, givenName}) {
       return givenName || nickname

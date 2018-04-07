@@ -1,7 +1,7 @@
 port: 3000
 
 rethink:
-  db: test
+  db: thang
   host: localhost
 
 auth:
