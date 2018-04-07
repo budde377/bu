@@ -9,7 +9,7 @@ import BookingTable from './BookingTable'
 import { FormattedMessage } from 'react-intl'
 import LogVisit from '../LogVisit'
 import OnMount from '../OnMount'
-import LogoLoader from '../LogoLoader'
+import Logo from '../Logo'
 
 const GET_THANG = gql`
     query getThangUsers($id: ID!){
@@ -53,7 +53,7 @@ const SUBSCRIBE_THANG = gql`
     }
 `
 
-type U = {displayName: string, id: string, picture: string}
+type U = { displayName: string, id: string, picture: string }
 
 class ThangUsers extends React.Component<{ owners: U[], users: U[] }> {
   render () {
@@ -97,7 +97,7 @@ class BaseThang extends React.Component<*> {
             if (loading) {
               return (
                 <div style={{width: '5em', margin: 'auto', paddingTop: '10%'}}>
-                  <LogoLoader />
+                  <Logo loading />
                 </div>
               )
             }

@@ -67,11 +67,11 @@ function mask (c1: Colors): (c2: Colors) => Colors {
 
 const steps = slidingSteps.map(mask(symbol))
 
-class LogoLoader extends React.Component<{}, { currentColors: Colors, step: number }> {
-  state = {
-    step: 0,
-    currentColors: steps[0]
-  }
+type LogoState = { currentColors: Colors, step: number }
+type LogoProps = { loading?: boolean }
+
+class Logo extends React.Component<LogoProps, LogoState> {
+  state: LogoState
   _time = 100
   _style = {
     transition: '0.5s fill'
@@ -80,12 +80,45 @@ class LogoLoader extends React.Component<{}, { currentColors: Colors, step: numb
   _c1 = '#FA4659'
   _c2 = '#11CBD7'
 
+  constructor (props: *) {
+    super(props)
+    this.state = this._initState(props)
+  }
+
+  _initState (props: LogoProps = this.props) {
+    return props.loading
+      ? {currentColors: steps[0], step: 0}
+      : {currentColors: symbol, step: -1}
+  }
+
   _updateColors () {
-    this.setState(({step}) => ({step: (step + 1) % steps.length, currentColors: steps[(step + 1) % steps.length]}))
+    this.setState(({step}) => step < 0
+      ? {}
+      : ({
+        step: (step + 1) % steps.length,
+        currentColors: steps[(step + 1) % steps.length]
+      }))
+  }
+
+  _start (props: LogoProps) {
+    if (this._interval) {
+      clearInterval(this._interval)
+    }
+    if (props.loading) {
+      this._interval = setInterval(() => this._updateColors(), this._time)
+    }
   }
 
   componentDidMount () {
-    this._interval = setInterval(() => this._updateColors(), this._time)
+    this._start(this.props)
+  }
+
+  componentWillReceiveProps (props: LogoProps) {
+    if ((props.loading && this.props.loading) || (!props.loading && !this.props.loading)) {
+      return
+    }
+    this.setState(this._initState(props))
+    this._start(props)
   }
 
   componentWillUnmount () {
@@ -129,4 +162,4 @@ class LogoLoader extends React.Component<{}, { currentColors: Colors, step: numb
   }
 }
 
-export default LogoLoader
+export default Logo

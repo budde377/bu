@@ -11,7 +11,7 @@ import englishLocaleData from 'react-intl/locale-data/en'
 import messages from '../../locale/en.json'
 import { hot } from 'react-hot-loader'
 import NotFoundApp from './NotFoundApp'
-import Loader from './LogoLoader'
+import Logo from './Logo'
 
 addLocaleData(englishLocaleData)
 
@@ -72,7 +72,7 @@ const App = () => (
     <Query query={GET_ME}>
       {({loading, error, data}) => {
         if (loading) {
-          return <Loader />
+          return <Logo loading />
         }
         const me: ?User = data.me
         if (!me) {
