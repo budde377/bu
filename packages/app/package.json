@@ -57,7 +57,8 @@
     "redis": "^2.8.0",
     "semantic-ui-css": "^2.3.1",
     "semantic-ui-react": "^0.79.0",
-    "subscriptions-transport-ws": "^0.9.7"
+    "subscriptions-transport-ws": "^0.9.7",
+    "uuid": "^3.2.1"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
