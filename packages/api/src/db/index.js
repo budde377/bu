@@ -28,7 +28,7 @@ export type User = {
   timezone: string
 }
 
-type Thang = {
+export type Thang = {
   id: string,
   name: string,
   owners: string[],
@@ -40,7 +40,6 @@ type Thang = {
 type ThangCollection = {
   id: string,
   name: string,
-  thangs: string[],
   owners: string[]
 }
 type Dt = {
@@ -110,10 +109,10 @@ export async function createThang (args: WithoutId<Thang>): Promise<string> {
   return id
 }
 
-export async function createThangCollection ({owners, name}: WithoutId<ThangCollection>): Promise<string> {
+export async function createThangCollection (args: WithoutId<ThangCollection>): Promise<string> {
   const {generated_keys: [id]} = await r
     .table('thangCollections')
-    .insert({owners, name, created: Date.now()})
+    .insert({...args, created: Date.now()})
     .run(await connectionP)
   return id
 }

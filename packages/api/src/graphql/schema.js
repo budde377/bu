@@ -25,6 +25,8 @@ import {
 } from '../db'
 import { makeExecutableSchema } from 'graphql-tools'
 import { userPicture } from '../util/communications'
+import moment from 'moment-timezone'
+import type { Thang } from '../db'
 
 const typeDefs = [
   `
@@ -138,7 +140,13 @@ schema {
 }`
 ]
 
-type CustomErrorCode = 'USER_NOT_LOGGED_IN' | 'USER_EMAIL_NOT_VERIFIED'
+export type CustomErrorCode =
+  'USER_NOT_LOGGED_IN'
+  | 'USER_EMAIL_NOT_VERIFIED'
+  | 'THANG_NOT_FOUND'
+  | 'INVALID_TIMEZONE'
+  | 'INVALID_NAME'
+  | 'INSUFFICIENT_PERMISSIONS'
 
 function checkEmail (f, defaultValue = null) {
   return (ctx, arg, {currentUser}) => currentUser && currentUser.email === ctx.email
@@ -147,7 +155,7 @@ function checkEmail (f, defaultValue = null) {
 }
 
 export class CustomError extends Error {
-  extensions: {code: CustomErrorCode}
+  extensions: { code: CustomErrorCode }
 
   constructor (message: string, code: CustomErrorCode) {
     super(message)
@@ -189,6 +197,26 @@ function checkEmailVerified (f) {
     }
     return f(ctx, args, wat)
   })
+}
+
+async function validateThang (id): Promise<Thang> {
+  const t = await thang(id)
+  if (!t) {
+    throw new CustomError(`Thang with id ${id} not found`, 'THANG_NOT_FOUND')
+  }
+  return t
+}
+
+function validateTimezone (tz) {
+  if (!moment.tz.zone(tz)) {
+    throw new CustomError(`Invalid timezone: ${tz}`, 'INVALID_TIMEZONE')
+  }
+}
+
+function validateName (name) {
+  if (!name) {
+    throw new CustomError(`Invalid name: "${name}"`, 'INVALID_NAME')
+  }
 }
 
 const resolvers = {
@@ -291,6 +319,7 @@ const resolvers = {
   Mutation: {
     createBooking:
       checkEmailVerified(async (ctx, args, {currentUser}) => {
+        await validateThang(args.thang)
         const id = await createBooking({
           from: args.from,
           to: args.to,
@@ -302,6 +331,8 @@ const resolvers = {
       }),
     createThang:
       checkEmailVerified(async (ctx, args, {currentUser}) => {
+        validateTimezone(args.timezone)
+        validateName(args.name)
         const id = await createThang({
           name: args.name,
           owners: [currentUser.email],
@@ -313,22 +344,58 @@ const resolvers = {
       }),
     createThangCollection:
       checkEmailVerified(async (ctx, args, {currentUser}) => {
+        validateName(args.name)
         const id = await createThangCollection({
           name: args.name,
-          owners: [currentUser.email],
-          thangs: []
+          owners: [currentUser.email]
         })
         return thangCollection(id)
       }),
     deleteBooking:
-      checkEmailVerified(async (ctx, {id}, {currentUser}) =>
-        ({deleted: await deleteBooking(id)})),
+      checkEmailVerified(async (ctx, {id}, {currentUser}) => {
+        const b = await booking(id)
+        if (!b) {
+          return {deleted: 0}
+        }
+        if (b.owner === currentUser.email) {
+          const deleted = await deleteBooking(id)
+          return {deleted}
+        }
+        const t = await thang(b.thang)
+        if (t && t.owners.indexOf(currentUser.email) >= 0) {
+          const deleted = await deleteBooking(id)
+          return {deleted}
+        }
+        throw new CustomError(
+          `User with id ${currentUser.id} can't delete booking with id ${id}`,
+          'INSUFFICIENT_PERMISSIONS')
+      }),
     deleteThang:
-      checkEmailVerified(async (ctx, {id}, {currentUser}) =>
-        ({deleted: await deleteThang(id)})),
+      checkEmailVerified(async (ctx, {id}, {currentUser}) => {
+        const t = await thang(id)
+        if (!t) {
+          return {deleted: 0}
+        }
+        if (t.owners.indexOf(currentUser.email) < 0) {
+          throw new CustomError(
+            `User with id ${currentUser.id} can't delete thang with id ${id}`,
+            'INSUFFICIENT_PERMISSIONS')
+        }
+        return {deleted: await deleteThang(id)}
+      }),
     deleteThangCollection:
-      checkEmailVerified(async (ctx, {id}, {currentUser}) =>
-        ({deleted: await deleteThangCollection(id)})),
+      checkEmailVerified(async (ctx, {id}, {currentUser}) => {
+        const t = await thangCollection(id)
+        if (!t) {
+          return {deleted: 0}
+        }
+        if (t.owners.indexOf(currentUser.email) < 0) {
+          throw new CustomError(
+            `User with id ${currentUser.id} can't delete thang with id ${id}`,
+            'INSUFFICIENT_PERMISSIONS')
+        }
+        return {deleted: await deleteThangCollection(id)}
+      }),
     visitThang:
       checkUserLoggedIn(async (ctx, {id}, {currentUser}) =>
         visitLogEntry(await createVisitLogEntry(id, currentUser.email)))
