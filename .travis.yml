@@ -8,6 +8,7 @@ services:
 before_install:
   - npm i -g npm@latest
   - npm ci
+  - docker-compose up -d rdb
 
 install:
   - npm run ci
