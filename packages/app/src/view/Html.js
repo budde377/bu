@@ -6,7 +6,7 @@ export type Config = {
   accessToken: ?string
 }
 
-export default ({content, config, apolloState}: { apolloState: *, content: string, config: Config}) => (
+export default ({content, config, apolloState, version}: { apolloState: *, content: string, config: Config, version: string}) => (
   <html>
     <head>
       <title>Thang.io</title>
@@ -27,15 +27,15 @@ export default ({content, config, apolloState}: { apolloState: *, content: strin
       <meta name='msapplication-TileColor' content='#ffffff' />
       <meta name='msapplication-TileImage' content='/ms-icon-144x144.png' />
       <meta name='theme-color' content='#ffffff' />
-      {process.env.NODE_ENV === 'production' ? <script src={'/styles.js'} async /> : null}
-      {process.env.NODE_ENV === 'production' ? <link rel={'stylesheet'} type={'text/css'} href={'/styles.css'} /> : null}
+      {process.env.NODE_ENV === 'production' ? <script src={`/styles.js?v=${version}`} async /> : null}
+      {process.env.NODE_ENV === 'production' ? <link rel={'stylesheet'} type={'text/css'} href={`/styles.css?v=${version}`} /> : null}
       <script
         type={'application/javascript'}
         dangerouslySetInnerHTML={{__html: `window.__CONFIG__ = ${JSON.stringify(config).replace(/</g, '\\u003c')}`}} />
       <script
         type={'application/javascript'}
         dangerouslySetInnerHTML={{__html: `window.__APOLLO_STATE__ = ${JSON.stringify(apolloState).replace(/</g, '\\u003c')}`}} />
-      <script src={'/main.js'} async defer />
+      <script src={`/main.js?v=${version}`} async defer />
     </head>
     <body>
       <div id={'content'} dangerouslySetInnerHTML={{__html: content}} />

@@ -47,6 +47,7 @@ type User {
   picture: String!
   collections: [ThangCollection!]
   email: String
+  emailVerified: Boolean
   timezone: String
 }
 type ThangCollection {
@@ -137,7 +138,7 @@ schema {
 }`
 ]
 
-type CustomErrorCode = 'USER_NOT_LOGGED_IN'
+type CustomErrorCode = 'USER_NOT_LOGGED_IN' | 'USER_EMAIL_NOT_VERIFIED'
 
 function checkEmail (f) {
   return (ctx, arg, {currentUser}) => currentUser && currentUser.email === ctx.email
@@ -227,6 +228,7 @@ const resolvers = {
     thangs: checkEmail(({email}) => userThangs(email)),
     collections: checkEmail(({email}) => userCollections(email)),
     email: checkEmail(({email}) => email),
+    emailVerified: checkEmail(({emailVerified}) => emailVerified),
     timezone: checkEmail(({timezone}) => timezone),
     name: checkEmail(({name}) => name),
     nickname: checkEmail(({nickname}) => nickname),
@@ -272,6 +274,9 @@ const resolvers = {
     async createBooking (ctx, args, {currentUser}) {
       if (!currentUser) {
         throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
+      }
+      if (!currentUser.emailVerified) {
+        throw new CustomError('User email is not verified', 'USER_EMAIL_NOT_VERIFIED')
       }
       const id = await createBooking({from: args.from, to: args.to, owner: currentUser.email, thang: args.thang})
       await thangAddUser(args.thang, currentUser.email)
