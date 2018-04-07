@@ -10,6 +10,7 @@ import { createHttpLink } from 'apollo-link-http'
 import { getDataFromTree, ApolloProvider } from 'react-apollo'
 import fetch from 'node-fetch'
 import config from 'config'
+import type {Middleware} from 'koa'
 
 function gqlClient () {
   return new ApolloClient({
@@ -23,8 +24,8 @@ function gqlClient () {
   })
 }
 
-export default () =>
-  async (ctx) => {
+const m: () => Middleware = () =>
+  async (ctx: *) => {
     const client = gqlClient()
     const context = {}
     const conf = {
@@ -53,3 +54,4 @@ export default () =>
     )
     ctx.body = `<!doctype html>\n${ReactDOMServer.renderToStaticMarkup(html)}`
   }
+export default m

@@ -3,6 +3,7 @@ import uuidV4 from 'uuid/v4'
 import qs from 'querystring'
 import config from 'config'
 import fetch from 'node-fetch'
+import type {Middleware} from 'koa'
 
 async function fetchAccessToken (code: string): Promise<string> {
   try {
@@ -25,7 +26,7 @@ async function fetchAccessToken (code: string): Promise<string> {
   }
 }
 
-export default () => async (ctx, next) => {
+const middleware: () => Middleware = () => async (ctx: *, next: *) => {
   switch (ctx.path) {
     case '/auth/login':
       const {domain, audience, scope, clientId, redirectUri} = config.get('auth0')
@@ -62,3 +63,4 @@ export default () => async (ctx, next) => {
       await next()
   }
 }
+export default middleware

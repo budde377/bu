@@ -17,7 +17,7 @@ function del (key: string): Promise<void> {
   return new Promise((resolve, reject) => {
     client.del(key, (err, data) => {
       if (err) return reject(err)
-      resolve(data)
+      resolve()
     })
   })
 }
@@ -26,7 +26,7 @@ function set (key: string, value: string, ttl: number): Promise<void> {
   return new Promise((resolve, reject) => {
     client.set(key, value, 'EX', ttl, (err, data) => {
       if (err) return reject(err)
-      resolve(data)
+      resolve()
     })
   })
 }
