@@ -60,7 +60,10 @@ const LoggedInApp = ({user}: { user: User }) => (
 )
 
 const PublicApp = () => (
-  <Container fluid>
+  <Container fluid style={{textAlign: 'center'}}>
+    <div style={{width: '5em', margin: 'auto', padding: '4em 0'}}>
+      <Logo />
+    </div>
     <Button as='a' href='/auth/login'>
       <FormattedMessage id={'login'} />
     </Button>
