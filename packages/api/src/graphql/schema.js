@@ -331,14 +331,15 @@ const resolvers = {
       }),
     createThang:
       checkEmailVerified(async (ctx, args, {currentUser}) => {
-        validateTimezone(args.timezone)
+        const timezone = args.timezone || currentUser.timezone
+        validateTimezone(timezone)
         validateName(args.name)
         const id = await createThang({
           name: args.name,
           owners: [currentUser.email],
           users: [currentUser.email],
           collection: null,
-          timezone: currentUser.timezone
+          timezone
         })
         return thang(id)
       }),
