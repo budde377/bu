@@ -47,8 +47,7 @@ const middleware: () => Middleware = () => async (ctx: *, next: *) => {
       const {code, state: newState} = ctx.request.query
       const oldState = await ctx.session.authState
       if (oldState === newState) {
-        const auth = await fetchAccessToken(code)
-        ctx.session.accessToken = auth
+        ctx.session.accessToken = await fetchAccessToken(code)
         ctx.session.authState = null
       } else {
         ctx.session.authState = null

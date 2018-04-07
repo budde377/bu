@@ -147,11 +147,11 @@ function checkEmail (f) {
 }
 
 export class CustomError extends Error {
-  code: CustomErrorCode
+  extensions: {code: CustomErrorCode}
 
   constructor (message: string, code: CustomErrorCode) {
     super(message)
-    this.code = code
+    this.extensions = {code}
   }
 }
 
@@ -171,6 +171,24 @@ function resolve (change) {
         change: newVal
       }
   }
+}
+
+function checkUserLoggedIn (f) {
+  return (ctx, args, wat) => {
+    if (!wat.currentUser) {
+      throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
+    }
+    return f(ctx, args, wat)
+  }
+}
+
+function checkEmailVerified (f) {
+  return checkUserLoggedIn((ctx, args, wat) => {
+    if (!wat.currentUser.emailVerified) {
+      throw new CustomError('User email is not verified', 'USER_EMAIL_NOT_VERIFIED')
+    }
+    return f(ctx, args, wat)
+  })
 }
 
 const resolvers = {
@@ -271,56 +289,49 @@ const resolvers = {
     }
   },
   Mutation: {
-    async createBooking (ctx, args, {currentUser}) {
-      if (!currentUser) {
-        throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
-      }
-      if (!currentUser.emailVerified) {
-        throw new CustomError('User email is not verified', 'USER_EMAIL_NOT_VERIFIED')
-      }
-      const id = await createBooking({from: args.from, to: args.to, owner: currentUser.email, thang: args.thang})
-      await thangAddUser(args.thang, currentUser.email)
-      return booking(id)
-    },
-    async createThang (ctx, args, {currentUser}) {
-      if (!currentUser) {
-        throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
-      }
-      const id = await createThang({
-        name: args.name,
-        owners: [currentUser.email],
-        users: [currentUser.email],
-        collection: null,
-        timezone: currentUser.timezone
-      })
-      return thang(id)
-    },
-    async createThangCollection (ctx, args, {currentUser}) {
-      if (!currentUser) {
-        throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
-      }
-      const id = await createThangCollection({name: args.name, owners: [currentUser.email], thangs: []})
-      return thangCollection(id)
-    },
-    async deleteBooking (ctx, {id}) {
-      const deleted = await deleteBooking(id)
-      return {deleted}
-    },
-    async deleteThang (ctx, {id}) {
-      const deleted = await deleteThang(id)
-      return {deleted}
-    },
-    async deleteThangCollection (ctx, {id}) {
-      const deleted = await deleteThangCollection(id)
-      return {deleted}
-    },
-    async visitThang (ctx, {id}, {currentUser}) {
-      if (!currentUser) {
-        throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
-      }
-      const i = await createVisitLogEntry(id, currentUser.email)
-      return visitLogEntry(i)
-    }
+    createBooking:
+      checkEmailVerified(async (ctx, args, {currentUser}) => {
+        const id = await createBooking({
+          from: args.from,
+          to: args.to,
+          owner: currentUser.email,
+          thang: args.thang
+        })
+        await thangAddUser(args.thang, currentUser.email)
+        return booking(id)
+      }),
+    createThang:
+      checkEmailVerified(async (ctx, args, {currentUser}) => {
+        const id = await createThang({
+          name: args.name,
+          owners: [currentUser.email],
+          users: [currentUser.email],
+          collection: null,
+          timezone: currentUser.timezone
+        })
+        return thang(id)
+      }),
+    createThangCollection:
+      checkEmailVerified(async (ctx, args, {currentUser}) => {
+        const id = await createThangCollection({
+          name: args.name,
+          owners: [currentUser.email],
+          thangs: []
+        })
+        return thangCollection(id)
+      }),
+    deleteBooking:
+      checkEmailVerified(async (ctx, {id}, {currentUser}) =>
+        ({deleted: await deleteBooking(id)})),
+    deleteThang:
+      checkEmailVerified(async (ctx, {id}, {currentUser}) =>
+        ({deleted: await deleteThang(id)})),
+    deleteThangCollection:
+      checkEmailVerified(async (ctx, {id}, {currentUser}) =>
+        ({deleted: await deleteThangCollection(id)})),
+    visitThang:
+      checkUserLoggedIn(async (ctx, {id}, {currentUser}) =>
+        visitLogEntry(await createVisitLogEntry(id, currentUser.email)))
   }
 }
 

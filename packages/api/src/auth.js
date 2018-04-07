@@ -144,11 +144,11 @@ async function fetchProfile (token: string): Promise<?Profile> {
 
 async function createOrUpdateUser (profile: Profile): Promise<string> {
   const u = await user(profile.email)
+  if (u && profile.email === profile.name) {
+    return u.id
+  }
   if (u) {
-    const p = profile.email === profile.name
-      ? {emailVerified: profile.emailVerified}
-      : profile
-    await updateUser(u.email, p)
+    await updateUser(u.email, profile)
     return u.id
   }
   const timezone = config.defaultTimezone
@@ -158,16 +158,20 @@ async function createOrUpdateUser (profile: Profile): Promise<string> {
 }
 
 export async function tokenToUser (token: string): Promise<?User> {
+  // Validate token
   const valid = await verify(token)
   if (!valid) {
     return null
   }
+  // Fetch external profile
   const profile = await cachedFetchProfile(token)
   if (!profile) {
     return null
   }
+  // Create or update the user
   await createOrUpdateUser(profile)
-  return user(profile.email)
+  // If the email was verified is relative to the token
+  return {...await user(profile.email), emailVerified: profile.emailVerified}
 }
 
 export async function cachedTokenToUser (token: string): Promise<?User> {

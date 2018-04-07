@@ -16,8 +16,14 @@ async function ctxToContext (ctx) {
   return {currentUser}
 }
 
-router.post('/graphql', async (ctx, next) => graphqlKoa({schema, context: await ctxToContext(ctx)})(ctx, next))
-router.get('/graphql', async (ctx, next) => graphqlKoa({schema, context: await ctxToContext(ctx)})(ctx, next))
+router.post('/graphql', async (ctx, next) => graphqlKoa({
+  schema,
+  context: await ctxToContext(ctx)
+})(ctx, next))
+router.get('/graphql', async (ctx, next) => graphqlKoa({
+  schema,
+  context: await ctxToContext(ctx)
+})(ctx, next))
 
 // Setup the /graphiql route to show the GraphiQL UI
 router.get(
