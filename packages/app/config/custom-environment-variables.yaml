@@ -12,3 +12,6 @@ api:
     ws: API_SERVER_WS
 
 version: VERSION
+
+auth:
+  clientSecret: AUTH_CLIENT_SECRET

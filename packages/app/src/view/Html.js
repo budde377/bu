@@ -2,7 +2,8 @@
 import React from 'react'
 
 export type Config = {
-  api: {http: string, ws: string}
+  api: {http: string, ws: string},
+  accessToken: ?string
 }
 
 export default ({content, config, apolloState}: { apolloState: *, content: string, config: Config}) => (

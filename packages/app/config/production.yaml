@@ -1,5 +1,5 @@
 auth:
-  redirectUri: https://thang.io/popup/callback
+  redirectUri: https://thang.io/auth/callback
 
 api:
   client:

@@ -8,16 +8,16 @@ import type {Middleware} from 'koa'
 async function fetchAccessToken (code: string): Promise<string> {
   try {
     const res = await fetch(
-      `https://${config.auth0.domain}/oauth/token`,
+      `https://${config.auth.domain}/oauth/token`,
       {
         method: 'post',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           grant_type: 'authorization_code',
-          client_id: config.auth0.clientId,
-          client_secret: config.auth0.clientSecret,
+          client_id: config.auth.clientId,
+          client_secret: config.auth.clientSecret,
           code,
-          redirect_uri: config.auth0.redirectUri
+          redirect_uri: config.auth.redirectUri
         })})
     const {access_token: accessToken} = await res.json()
     return accessToken
@@ -29,7 +29,7 @@ async function fetchAccessToken (code: string): Promise<string> {
 const middleware: () => Middleware = () => async (ctx: *, next: *) => {
   switch (ctx.path) {
     case '/auth/login':
-      const {domain, audience, scope, clientId, redirectUri} = config.get('auth0')
+      const {domain, audience, scope, clientId, redirectUri} = config.get('auth')
       const state = uuidV4()
       const responseType = 'code'
       const q = {

@@ -12,12 +12,13 @@ import fetch from 'node-fetch'
 import config from 'config'
 import type {Middleware} from 'koa'
 
-function gqlClient () {
+function gqlClient (accessToken: ?string) {
   return new ApolloClient({
     ssrMode: true,
     link: createHttpLink({
       // $FlowFixMe: This is ok
       uri: `${config.api.server.http}/graphql`,
+      headers: accessToken ? {authentication: `Bearer ${accessToken}`} : {},
       fetch
     }),
     cache: new InMemoryCache()
@@ -26,13 +27,15 @@ function gqlClient () {
 
 const m: () => Middleware = () =>
   async (ctx: *) => {
-    const client = gqlClient()
+    const accessToken = ctx.session.accessToken || null
+    const client = gqlClient(accessToken)
     const context = {}
     const conf = {
       api: {
         http: config.get('api.client.http'),
         ws: config.get('api.client.ws')
-      }
+      },
+      accessToken
     }
     const A = (
       <ApolloProvider client={client}>
@@ -45,6 +48,9 @@ const m: () => Middleware = () =>
     )
     await getDataFromTree(A)
     const content = ReactDOMServer.renderToString(A)
+    if (context.statusCode) {
+      ctx.status = context.statusCode
+    }
     if (context.url) {
       return ctx.redirect(context.url)
     }

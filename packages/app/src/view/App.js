@@ -3,13 +3,15 @@ import React from 'react'
 import { Query } from 'react-apollo'
 import gql from 'graphql-tag'
 import { Redirect, Route, Switch } from 'react-router'
-import { Link, NavLink } from 'react-router-dom'
-import { Container, Dropdown, Image, Menu } from 'semantic-ui-react'
-import CreateThang from './CreateThang'
+import { Link } from 'react-router-dom'
+import { Container, Image, Menu, Button } from 'semantic-ui-react'
 import Thang from './thang'
-import { FormattedMessage, addLocaleData, IntlProvider } from 'react-intl'
+import { addLocaleData, FormattedMessage, IntlProvider } from 'react-intl'
 import englishLocaleData from 'react-intl/locale-data/en'
 import messages from '../../locale/en.json'
+import { hot } from 'react-hot-loader'
+import NotFoundApp from './NotFoundApp'
+import Loader from './LogoLoader'
 
 addLocaleData(englishLocaleData)
 
@@ -18,179 +20,70 @@ const GET_ME = gql`
         me {
             id
             picture
-            givenName
-            name
+            displayName
         }
     }
 `
 
-class LoginMenu extends React.Component<{}> {
-  render () {
-    return (
-      <Query query={GET_ME}>
-        {({loading, error, data}) => {
-          if (loading) {
-            return null
-          }
-          const me = data.me
-          if (!me) {
-            return (
-              <Menu.Item>
-                Login
-              </Menu.Item>
-            )
-          }
-          return (
-            <Dropdown item trigger={
-              <div>
-                <Image avatar src={me.picture} />
-                <span style={{paddingLeft: '0.5em'}}>
-                  {me.givenName || me.name}
-                </span>
-              </div>}>
-              <Dropdown.Menu>
-                <Dropdown.Item>
-                  <FormattedMessage id={'logout'} />
-                </Dropdown.Item>
-              </Dropdown.Menu>
-            </Dropdown>
-          )
-        }}
-      </Query>
-    )
-  }
+type User = {
+  id: string,
+  picture: string,
+  displayName: string
 }
 
-const MainMenu = () => (
+const LoggedInMenu = ({user}: { user: User }) => (
   <Menu stackable style={{minHeight: '4em'}}>
     <Menu.Item as={Link} to={'/'}>
       <Image style={{height: '2em'}} src={require('../../images/logo_named.svg')} />
     </Menu.Item>
     <Menu.Menu position={'right'}>
-      <LoginMenu />
+      <Menu.Item>
+        <Image avatar src={user.picture} />
+        <span style={{paddingLeft: '0.5em'}}>{user.displayName}</span>
+      </Menu.Item>
+      <Menu.Item>
+        <Button icon={'log out'} as={'a'} href={'/auth/logout'} />
+      </Menu.Item>
     </Menu.Menu>
   </Menu>
 )
 
-const GET_THANGS = gql`
-    query getThangs {
-        me {
-            id
-            thangs {
-                id
-                name
-            }
-        }
-    }
-`
-
-const SUBSCRIBE_THANGS = gql`
-    subscription subscribeThangs {
-        myThangsChange {
-            add {
-                id
-                name
-            }
-            remove {
-                id
-                name
-            }
-            change {
-                id
-                name
-            }
-        }
-    }
-`
-
-class ThangList extends React.Component<{ subscribe: () => mixed, thangs: { id: string, name: string }[] }> {
-  componentDidMount () {
-    this.props.subscribe()
-  }
-
-  render () {
-    return (
-      this.props.thangs.length
-        ? (
-          <Menu.Menu>
-            {this.props.thangs.map(({id, name}) => (
-              <Menu.Item key={id} as={NavLink} to={`/thangs/${id}`}>
-                {name}
-              </Menu.Item>
-            ))}
-          </Menu.Menu>)
-        : (
-          <i>
-            <FormattedMessage id={'listThangs.empty'} />
-          </i>
-        )
-    )
-  }
-}
-
-class ListThangs extends React.Component<{}> {
-  render () {
-    return (
-      <Query query={GET_THANGS}>
-        {({subscribeToMore, loading, error, data}) => {
-          if (loading || !data.me) {
-            return null
-          }
-          return (
-            <ThangList thangs={data.me.thangs} subscribe={() => {
-              subscribeToMore({
-                document: SUBSCRIBE_THANGS,
-                updateQuery: (prev, {subscriptionData}) => {
-                  if (!subscriptionData.data) return prev
-                  const {myThangsChange: {add, change, remove}} = subscriptionData.data
-                  const oldThangs = prev.me.thangs
-                  const tThangs1 = add
-                    ? [...oldThangs, add]
-                    : oldThangs
-                  const tThangs2 = change
-                    ? tThangs1.map((t) => t.id === change.id ? change : t)
-                    : tThangs1
-                  const thangs = remove
-                    ? tThangs2.filter((t) => t.id !== remove.id)
-                    : tThangs2
-                  return {...prev, me: {...prev.me, thangs}}
-                }
-              })
-            }} />
-          )
-        }}
-      </Query>
-    )
-  }
-}
-
-const MainApp = () => (
+const LoggedInApp = ({user}: { user: User }) => (
   <Container fluid>
-    <MainMenu />
-    <Menu vertical secondary style={{position: 'absolute', left: 0, rigth: 0}}>
-      <Menu.Item>
-        <Menu.Header>
-          <FormattedMessage id={'listThangs.your'} />
-        </Menu.Header>
-        <ListThangs />
-      </Menu.Item>
-      <Menu.Item>
-        <CreateThang />
-      </Menu.Item>
-    </Menu>
-    <div style={{paddingLeft: '16rem', paddingTop: '1rem'}}>
-      <Thang />
-    </div>
+    <LoggedInMenu user={user} />
+    <Switch>
+      <Route path={'/thangs'} component={Thang} />
+      <Redirect from={'/'} to={'/thangs'} exact />
+      <Route component={NotFoundApp} />
+    </Switch>
+  </Container>
+)
+
+const PublicApp = () => (
+  <Container fluid>
+    <Button as='a' href='/auth/login'>
+      <FormattedMessage id={'login'} />
+    </Button>
   </Container>
 )
 
 const App = () => (
   <IntlProvider locale={'en'} messages={messages}>
-    <Switch>
-      <Route path={'/thangs'} component={MainApp} />
-      <Redirect from='/' to='/thangs' />
-    </Switch>
+    <Query query={GET_ME}>
+      {({loading, error, data}) => {
+        if (loading) {
+          return <Loader />
+        }
+        const me: ?User = data.me
+        if (!me) {
+          return (
+            <PublicApp />
+          )
+        }
+        return <LoggedInApp user={me} />
+      }}
+    </Query>
   </IntlProvider>
 )
 
-export default App
+export default hot(module)(() => <App />)

@@ -11,9 +11,8 @@ import type {Config} from '../view/Html'
 const config: Config = window.__CONFIG__
 
 function customFetch (uri, options) {
-  const r = ''
-  if (r) {
-    options.headers.authentication = `Bearer ${r.token}`
+  if (config.accessToken) {
+    options.headers.authentication = `Bearer ${config.accessToken}`
   }
   return fetch(uri, options)
 }
@@ -29,7 +28,7 @@ const wsLink = new WebSocketLink({
   options: {
     reconnect: true,
     connectionParams: {
-      authToken: ''
+      authToken: config.accessToken || ''
     }
   }
 })

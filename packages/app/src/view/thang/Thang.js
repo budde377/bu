@@ -92,7 +92,7 @@ class BaseThang extends React.Component<*> {
   render () {
     return (
       <div key={this.props.match.params.id}>
-        <Query query={GET_THANG} variables={{id: this.props.match.params.id}}>
+        <Query query={GET_THANG} variables={{id: this.props.match.params.id}} ssr={false}>
           {({loading, error, data, subscribeToMore}) => {
             if (loading) {
               return (
