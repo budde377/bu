@@ -1,6 +1,8 @@
 // flow-typed signature: 1e6728f0a649edac3689d6e2db7487a7
 // flow-typed version: 01716df816/react-router_v4.x.x/flow_>=v0.53.x
 
+import { StaticRouterContext } from "react-router"
+
 declare module "react-router" {
   // NOTE: many of these are re-exported by react-router-dom and
   // react-router-native, so when making changes, please be sure to update those
@@ -53,7 +55,8 @@ declare module "react-router" {
   declare export type ContextRouter = {|
     history: RouterHistory,
     location: Location,
-    match: Match
+    match: Match,
+    staticContext?: StaticRouterContext
   |};
 
   declare export type GetUserConfirmation = (
