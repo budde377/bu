@@ -20,7 +20,7 @@ function fakeUser (): User {
     nickname: faker.internet.userName(),
     picture: null,
     id: faker.random.uuid(),
-    timezone: 'Europe/Copenhagen',
+    timezone: 'America/New_York',
     userId: faker.internet.userName()
   }
 }
@@ -117,9 +117,9 @@ describe('schema', () => {
   })
 
   describe('query: user', () => {
-    const q = `
+    const q = ({id = user1.id, email}: { email?: string, id?: string } = {}) => `
       query {
-        user(id: "${user1.id}") {
+        user${id || email ? '(' : ''}${id ? 'id: "' + id + '"' : ''}${email && id ? ',' : ''}${email ? 'email: "' + email + '"' : ''}${id || email ? ')' : ''} {
           id
           name
           nickname
@@ -140,7 +140,7 @@ describe('schema', () => {
       }
     `
     it('should not fetch too much on public', async () => {
-      const result = await graphql(schema, q, {}, {})
+      const result = await graphql(schema, q(), {}, {})
       expect(result).toEqual({
         data: {
           user: {
@@ -161,7 +161,7 @@ describe('schema', () => {
       })
     })
     it('should not fetch too much on other user', async () => {
-      const result = await graphql(schema, q, {}, {currentUser: user2})
+      const result = await graphql(schema, q(), {}, {currentUser: user2})
       expect(result).toEqual({
         data: {
           user: {
@@ -182,7 +182,7 @@ describe('schema', () => {
       })
     })
     it('should fetch much on self', async () => {
-      const result = await graphql(schema, q, {}, {currentUser: user1})
+      const result = await graphql(schema, q(), {}, {currentUser: user1})
       expect(result).toEqual({
         data: {
           user: {
@@ -202,6 +202,84 @@ describe('schema', () => {
         }
       })
     })
+    it('should fetch with email', async () => {
+      const result = await graphql(schema, q({id: '', email: user1.email}), {}, {currentUser: user1})
+      expect(result).toEqual({
+        data: {
+          user: {
+            name: user1.name,
+            email: user1.email,
+            collections: [],
+            thangs: [],
+            displayName: user1.givenName || user1.nickname,
+            emailVerified: user1.emailVerified,
+            familyName: user1.familyName,
+            givenName: user1.givenName,
+            id: user1.id,
+            nickname: user1.nickname,
+            picture: userPicture(user1),
+            timezone: user1.timezone
+          }
+        }
+      })
+    })
+    it('should succeed on invalid id', async () => {
+      const result = await graphql(schema, q({id: faker.random.uuid()}), {}, {currentUser: user1})
+      expect(result).toEqual({
+        data: {
+          user: null
+        }
+      })
+    })
+    it('should succeed on no id or email', async () => {
+      const result = await graphql(schema, q({id: ''}), {}, {currentUser: user1})
+      expect(result).toEqual({
+        data: {
+          user: null
+        }
+      })
+    })
+  })
+
+  describe('query: thang', () => {
+    const q = (id) => `
+    query {
+      thang(id: "${id}") {
+        name
+        id
+      }
+    }
+    `
+    let thang
+    beforeEach(async () => {
+      const id = await db.createThang({
+        owners: [user1.email],
+        users: [user1.email],
+        timezone: user1.timezone,
+        name: 'Foobar',
+        collection: null
+      })
+      const b = await db.thang(id)
+      if (!b) {
+        throw new Error('WTF')
+      }
+      thang = b
+    })
+    it('should return null on not found', async () => {
+      const result = await graphql(schema, q('foobar'), {}, {})
+      expect(result).toEqual({data: {thang: null}})
+    })
+    it('should succeed', async () => {
+      const result = await graphql(schema, q(thang.id), {}, {})
+      expect(result).toEqual({
+        data: {
+          thang: {
+            id: thang.id,
+            name: thang.name
+          }
+        }
+      })
+    })
   })
 
   describe('mutation: createBooking', () => {
@@ -209,6 +287,14 @@ describe('schema', () => {
     mutation {
       createBooking(thang: "${id}", from: {hour: 1, minute: 1, day: 1, month: 1, year: 2010}, to: {hour: 2, minute: 1, day: 1, month: 1, year: 2010}) {
         id
+        owner {
+          id
+        }
+        thang {
+          bookings {
+            id
+          }
+        }
       }
     }
   `
@@ -220,11 +306,14 @@ describe('schema', () => {
     it('should fail on invalid thang id', async () => {
       const result = await graphql(schema, createBooking(), {}, {currentUser: user1})
       // $FlowFixMe
-      expect(result).toFailWithCode('THANG_NOT_FOUND')
+      expect(result).toFailWithCode('REFERENCE_ERROR')
     })
     it('should create booking', async () => {
+      // $FlowFixMe
       const result = await graphql(schema, createBooking(thang.id), {}, {currentUser: user1})
       expect(result.data).toBeTruthy()
+      expect(result.data.createBooking.owner).toEqual({id: user1.id})
+      expect(result.data.createBooking.thang.bookings).toEqual([{id: result.data.createBooking.id}])
     })
     it('should fail on email not verified', async () => {
       const result = await graphql(schema, createBooking(), {}, {currentUser: {...user1, emailVerified: false}})
@@ -236,8 +325,18 @@ describe('schema', () => {
   describe('mutation: createThang', () => {
     const createThang = ({tz = 'Europe/Copenhagen', name = 'Foobar'}: { name?: string, tz?: string } = {}) => `
     mutation {
-      createThang(name: "${name}", timezone: "${tz}") {
+      createThang(name: "${name}"${tz ? ', timezone: "' + tz + '"' : ''}) {
         id
+        timezone
+        users {
+          id
+        }
+        owners {
+          id
+        }
+        collection {
+          id
+        }
       }
     }
   `
@@ -260,6 +359,15 @@ describe('schema', () => {
       const result = await graphql(schema, createThang(), {}, {currentUser: user1})
       expect(result.data).toBeTruthy()
     })
+    it('should create thang with user timezone', async () => {
+      // $FlowFixMe
+      const result = await graphql(schema, createThang({tz: null}), {}, {currentUser: user1})
+      expect(result.data).toBeTruthy()
+      expect(result.data.createThang.timezone).toBe(user1.timezone)
+      expect(result.data.createThang.users).toEqual([{id: user1.id}])
+      expect(result.data.createThang.owners).toEqual([{id: user1.id}])
+      expect(result.data.createThang.collection).toBeNull()
+    })
     it('should fail on email not verified', async () => {
       const result = await graphql(schema, createThang(), {}, {currentUser: {...user1, emailVerified: false}})
       // $FlowFixMe
@@ -271,6 +379,9 @@ describe('schema', () => {
       mutation {
         createThangCollection(name: "${name}") {
           id
+          owners {
+            id
+          }
           thangs {
             id
           }
@@ -292,6 +403,7 @@ describe('schema', () => {
       const result = await graphql(schema, createThangCollection(), {}, {currentUser: user1})
       expect(result.data).toBeTruthy()
       expect(result.data.createThangCollection.thangs).toEqual([])
+      expect(result.data.createThangCollection.owners).toEqual([{id: user1.id}])
     })
     it('should fail on email not verified', async () => {
       const result = await graphql(schema, createThangCollection(), {}, {currentUser: {...user1, emailVerified: false}})
@@ -423,6 +535,51 @@ describe('schema', () => {
     it('should succeed no thang', async () => {
       const result = await graphql(schema, deleteThangCollection('Foobar'), {}, {currentUser: user2})
       expect(result).toEqual({data: {deleteThangCollection: {deleted: 0}}})
+    })
+  })
+  describe('mutation: visitTang', () => {
+    const visitThang = (id) => `
+      mutation {
+        visitThang(id: "${id}") {
+          id
+          thang {
+            id
+          }
+        }
+      }
+    `
+    let thang
+    beforeAll(async () => {
+      const id = await db.createThang({
+        owners: [user1.email],
+        users: [user1.email],
+        timezone: user1.timezone,
+        name: 'Foobar',
+        collection: null
+      })
+      const b = await db.thang(id)
+      if (!b) {
+        throw new Error('WTF')
+      }
+      thang = b
+    })
+    it('should fail on not logged in', async () => {
+      const result = await graphql(schema, visitThang(thang.id), {}, {})
+      // $FlowFixMe
+      expect(result).toFailWithCode('USER_NOT_LOGGED_IN')
+    })
+    it('should fail on no such thang', async () => {
+      const result = await graphql(schema, visitThang('foobar'), {}, {currentUser: user2})
+      // $FlowFixMe
+      expect(result).toFailWithCode('REFERENCE_ERROR')
+    })
+    it('should succeed when owner', async () => {
+      // $FlowFixMe
+      const result = await graphql(schema, visitThang(thang.id), {}, {currentUser: user1})
+      expect(result.data).toBeTruthy()
+      expect(result.data.visitThang.thang).toEqual({
+        id: thang.id
+      })
     })
   })
 })

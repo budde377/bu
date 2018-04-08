@@ -143,7 +143,7 @@ schema {
 export type CustomErrorCode =
   'USER_NOT_LOGGED_IN'
   | 'USER_EMAIL_NOT_VERIFIED'
-  | 'THANG_NOT_FOUND'
+  | 'REFERENCE_ERROR'
   | 'INVALID_TIMEZONE'
   | 'INVALID_NAME'
   | 'INSUFFICIENT_PERMISSIONS'
@@ -202,7 +202,7 @@ function checkEmailVerified (f) {
 async function validateThang (id): Promise<Thang> {
   const t = await thang(id)
   if (!t) {
-    throw new CustomError(`Thang with id ${id} not found`, 'THANG_NOT_FOUND')
+    throw new CustomError(`Thang with id ${id} not found`, 'REFERENCE_ERROR')
   }
   return t
 }
@@ -398,8 +398,11 @@ const resolvers = {
         return {deleted: await deleteThangCollection(id)}
       }),
     visitThang:
-      checkUserLoggedIn(async (ctx, {id}, {currentUser}) =>
-        visitLogEntry(await createVisitLogEntry(id, currentUser.email)))
+      checkUserLoggedIn(async (ctx, {id}, {currentUser}) => {
+        await validateThang(id)
+        const eId = await createVisitLogEntry(id, currentUser.email)
+        return visitLogEntry(eId)
+      })
   }
 }
 
