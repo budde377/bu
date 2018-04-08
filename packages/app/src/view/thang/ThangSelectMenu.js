@@ -1,11 +1,10 @@
 // @flow
 import gql from 'graphql-tag'
 import React from 'react'
-import { Menu } from 'semantic-ui-react'
 import { FormattedMessage } from 'react-intl'
-import CreateThang from './CreateThang'
 import { NavLink } from 'react-router-dom'
 import { Query } from 'react-apollo'
+import { Empty, Header, Item, Items, SecondaryMenu } from '../styled/Menu'
 
 const GET_THANGS = gql`
     query getThangs {
@@ -47,17 +46,17 @@ class ThangList extends React.Component<{ subscribe: () => mixed, thangs: { id: 
     return (
       this.props.thangs.length
         ? (
-          <Menu.Menu>
+          <Items>
             {this.props.thangs.map(({id, name}) => (
-              <Menu.Item key={id} as={NavLink} to={`/thangs/${id}`}>
+              <Item key={id} as={NavLink} to={`/thangs/${id}`}>
                 {name}
-              </Menu.Item>
+              </Item>
             ))}
-          </Menu.Menu>)
+          </Items>)
         : (
-          <i>
+          <Empty>
             <FormattedMessage id={'listThangs.empty'} />
-          </i>
+          </Empty>
         )
     )
   }
@@ -99,8 +98,7 @@ class ListThangs extends React.Component<{}> {
   }
 }
 
-export default () => (
-  <Menu vertical secondary style={{position: 'absolute', left: 0, rigth: 0}}>
+/*
     <Menu.Item>
       <Menu.Header>
         <FormattedMessage id={'listThangs.your'} />
@@ -110,5 +108,13 @@ export default () => (
     <Menu.Item>
       <CreateThang />
     </Menu.Item>
-  </Menu>
+
+ */
+export default () => (
+  <SecondaryMenu>
+    <Header>
+      <FormattedMessage id={'listThangs.your'} />
+    </Header>
+    <ListThangs />
+  </SecondaryMenu>
 )

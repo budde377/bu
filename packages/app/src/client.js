@@ -5,7 +5,6 @@ import App from './view/App'
 import { ApolloProvider } from 'react-apollo'
 import { BrowserRouter } from 'react-router-dom'
 import client from './graphql/client'
-import 'semantic-ui-css/semantic.min.css'
 
 const root = window.document.getElementById('content')
 

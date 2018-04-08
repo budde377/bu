@@ -2,14 +2,18 @@
 import React from 'react'
 
 export type Config = {
-  api: {http: string, ws: string},
+  api: { http: string, ws: string },
   accessToken: ?string
 }
 
-export default ({content, config, apolloState, version}: { apolloState: *, content: string, config: Config, version: string}) => (
+export default ({content, config, apolloState, version}: { apolloState: *, content: string, config: Config, version: string }) => (
   <html>
     <head>
       <title>Thang.io</title>
+      <link
+        href='https://fonts.googleapis.com/css?family=Fira+Sans:300,300i|Lato:400,700|Open+Sans:400,400i,700'
+        rel='stylesheet' />
+      <link rel={'stylesheet'} href={'/base.css'} />
       <link rel='apple-touch-icon' sizes='57x57' href='/apple-icon-57x57.png' />
       <link rel='apple-touch-icon' sizes='60x60' href='/apple-icon-60x60.png' />
       <link rel='apple-touch-icon' sizes='72x72' href='/apple-icon-72x72.png' />
@@ -29,7 +33,8 @@ export default ({content, config, apolloState, version}: { apolloState: *, conte
       <meta name='msapplication-TileImage' content='/ms-icon-144x144.png' />
       <meta name='theme-color' content='#ffffff' />
       {process.env.NODE_ENV === 'production' ? <script src={`/styles.js?v=${version}`} async /> : null}
-      {process.env.NODE_ENV === 'production' ? <link rel={'stylesheet'} type={'text/css'} href={`/styles.css?v=${version}`} /> : null}
+      {process.env.NODE_ENV === 'production'
+        ? <link rel={'stylesheet'} type={'text/css'} href={`/styles.css?v=${version}`} /> : null}
       <script
         type={'application/javascript'}
         dangerouslySetInnerHTML={{__html: `window.__CONFIG__ = ${JSON.stringify(config).replace(/</g, '\\u003c')}`}} />
