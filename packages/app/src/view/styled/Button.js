@@ -13,6 +13,7 @@ const style = css`
   border-style: none none solid none;
   display: inline-block;
   transition: 0.1s background-color;
+  text-decoration: none;
   &:focus {
     background-color: #c6c6c6;
     outline: none;
