@@ -32,9 +32,6 @@ export default ({styles, content, config, apolloState, version}: { styles: Array
       <meta name='msapplication-TileColor' content='#ffffff' />
       <meta name='msapplication-TileImage' content='/ms-icon-144x144.png' />
       <meta name='theme-color' content='#ffffff' />
-      {process.env.NODE_ENV === 'production' ? <script src={`/styles.js?v=${version}`} async /> : null}
-      {process.env.NODE_ENV === 'production'
-        ? <link rel={'stylesheet'} type={'text/css'} href={`/styles.css?v=${version}`} /> : null}
       <script
         type={'application/javascript'}
         dangerouslySetInnerHTML={{__html: `window.__CONFIG__ = ${JSON.stringify(config).replace(/</g, '\\u003c')}`}} />
