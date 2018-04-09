@@ -1,11 +1,12 @@
 // @flow
 
 import React from 'react'
-import { Checkbox, Image, Table } from 'semantic-ui-react'
 import { FormattedDate } from 'react-intl'
 import moment from 'moment-timezone'
 import { Mutation, Query } from 'react-apollo'
 import gql from 'graphql-tag'
+import { Body, Cell, Header, HeaderCell, Row, Table } from '../styled/BookinTable'
+import { Avatar } from '../styled/User'
 
 type BookingTableProps = {
   thang: string,
@@ -256,32 +257,31 @@ class BookingTableBody extends React.Component<{ now: moment, thang: string, boo
           <Mutation mutation={CREATE_BOOKING}>
             {(createMutator) => {
               return (
-                <Table.Body onClick={this._onClick(createMutator, deleteMutator)} ref={this._refPuller}>
-                  {
-                    range(24)
-                      .map(i => (
-                        <Table.Row key={i}>
-                          <Table.Cell textAlign={'right'}>
-                            {i}:00-{i + 1}:00
-                          </Table.Cell>
-                          {range(4)
-                            .map((j) => {
-                              const n = this.props.now.clone().add(j, 'd').add(i, 'h')
-                              const current = this._currentBooking(momentToDt(n))
-                              return (
-                                <Table.Cell textAlign={'center'} key={j}>
-                                  {
-                                    current
-                                      ? (<Image avatar src={current.owner.picture} />)
-                                      : (<Checkbox checked={false} />)
-                                  }
-                                </Table.Cell>
-                              )
-                            })}
-                        </Table.Row>
-                      ))
-                  }
-                </Table.Body>
+                <Body onClick={this._onClick(createMutator, deleteMutator)} ref={this._refPuller}>{
+                  range(24)
+                    .map(i => (
+                      <Row key={i}>
+                        <Cell textAlign={'right'}>
+                          {i}:00-{i + 1}:00
+                        </Cell>
+                        {range(4)
+                          .map((j) => {
+                            const n = this.props.now.clone().add(j, 'd').add(i, 'h')
+                            const current = this._currentBooking(momentToDt(n))
+                            return (
+                              <Cell textAlign={'center'} key={j}>
+                                {
+                                  current
+                                    ? (<Avatar picture={current.owner.picture} />)
+                                    : (<input type={'checkbox'} checked={false} />)
+                                }
+                              </Cell>
+                            )
+                          })}
+                      </Row>
+                    ))
+                }
+                </Body>
               )
             }}
           </Mutation>
@@ -310,11 +310,11 @@ class BookingTable extends React.Component<BookingTableProps> {
     const variables = {from, to, thang: this.props.thang}
     const key = `${this.props.thang}.${dtToString(from)}.${dtToString(to)}` // Force remount when vars change
     return (
-      <Table definition>
-        <Table.Header>
-          <Table.Row>
-            <Table.HeaderCell style={{width: '3em'}} />
-            <Table.HeaderCell textAlign={'center'}>
+      <Table>
+        <Header>
+          <Row>
+            <HeaderCell />
+            <HeaderCell>
               <FormattedDate
                 units={'day'}
                 month={'long'}
@@ -322,8 +322,8 @@ class BookingTable extends React.Component<BookingTableProps> {
                 day={'numeric'}
                 value={now.toDate()}
               />
-            </Table.HeaderCell>
-            <Table.HeaderCell textAlign={'center'}>
+            </HeaderCell>
+            <HeaderCell>
               <FormattedDate
                 units={'day'}
                 month={'long'}
@@ -331,8 +331,8 @@ class BookingTable extends React.Component<BookingTableProps> {
                 day={'numeric'}
                 value={now.clone().add(1, 'd').toDate()}
               />
-            </Table.HeaderCell>
-            <Table.HeaderCell textAlign={'center'}>
+            </HeaderCell>
+            <HeaderCell textAlign={'center'}>
               <FormattedDate
                 units={'day'}
                 month={'long'}
@@ -340,8 +340,8 @@ class BookingTable extends React.Component<BookingTableProps> {
                 day={'numeric'}
                 value={now.clone().add(2, 'd').toDate()}
               />
-            </Table.HeaderCell>
-            <Table.HeaderCell textAlign={'center'}>
+            </HeaderCell>
+            <HeaderCell textAlign={'center'}>
               <FormattedDate
                 units={'day'}
                 month={'long'}
@@ -349,9 +349,9 @@ class BookingTable extends React.Component<BookingTableProps> {
                 day={'numeric'}
                 value={now.clone().add(3, 'd').toDate()}
               />
-            </Table.HeaderCell>
-          </Table.Row>
-        </Table.Header>
+            </HeaderCell>
+          </Row>
+        </Header>
         <Query
           key={key}
           query={GET_BOOKINGS}

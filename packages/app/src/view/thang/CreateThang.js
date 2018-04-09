@@ -3,11 +3,10 @@
 import React from 'react'
 import gql from 'graphql-tag'
 import { Mutation } from 'react-apollo'
-import { Button, Form, Message } from 'semantic-ui-react'
-import { withRouter } from 'react-router'
-import type { ContextRouter } from 'react-router'
 import { injectIntl, FormattedMessage } from 'react-intl'
 import type { InjectIntlProvidedProps } from 'react-intl'
+import { Hint, Form, Input, Label } from '../styled/Form'
+import { Button } from '../styled/Button'
 
 const CREATE_THANG = gql`
     mutation createThang($name: String!) {
@@ -18,27 +17,14 @@ const CREATE_THANG = gql`
     }
 `
 
-class CreateThang extends React.Component<InjectIntlProvidedProps & ContextRouter, { name: string }> {
-  state = {name: ''}
-  _onChange = (evt: *, {value}) => this.setState({name: value})
+class CreateThang extends React.Component<{ onCreate: (id: string) => mixed } & InjectIntlProvidedProps, { name: string, submitted: boolean }> {
+  state = {name: '', submitted: false}
+  _reset = ((initialState) => () => this.setState(initialState))(this.state)
+  _onChange = (evt: *) => this.setState({name: evt.target.value})
 
-  _renderMessage (data: *) {
-    if (!data) {
-      return null
-    }
-    return (
-      <Message positive>
-        <FormattedMessage
-          id={'createThang.success'}
-          values={{
-            name: <i>{data.createThang.name}</i>
-          }}
-        />
-      </Message>
-    )
-  }
-
-  _onSubmit = (createThang) => async () => {
+  _onSubmit = (createThang) => async (evt) => {
+    this.setState({submitted: true})
+    evt.preventDefault()
     if (!this.state.name) {
       return
     }
@@ -46,30 +32,32 @@ class CreateThang extends React.Component<InjectIntlProvidedProps & ContextRoute
     if (!r.data) {
       return
     }
-    this.props.history.push(`/thangs/${r.data.createThang.id}`)
-    this.setState({name: ''})
+    this._reset()
+    this.props.onCreate(r.data.createThang.id)
   }
 
   render () {
     return (
       <Mutation mutation={CREATE_THANG}>
         {(createThang, {data, loading}) => (
-          <div>
-            <Form onSubmit={this._onSubmit(createThang)} loading={loading}>
-              {this._renderMessage(data)}
-              <Form.Input
-                placeholder={this.props.intl.formatMessage({id: 'name'})}
+          <Form onSubmit={this._onSubmit(createThang)}>
+            <Label>
+              <Hint show={this.state.submitted && !this.state.name.trim()}>
+                {this.props.intl.formatMessage({id: 'CreateThang.name.error'})}
+              </Hint>
+              <Input
                 value={this.state.name}
-                onChange={this._onChange} />
-              <Button type='submit' disabled={!this.state.name}>
-                <FormattedMessage id={'create'} />
-              </Button>
-            </Form>
-          </div>
+                onChange={this._onChange}
+                placeholder={this.props.intl.formatMessage({id: 'name'})} />
+            </Label>
+            <Button type={'submit'}>
+              <FormattedMessage id={'create'} />
+            </Button>
+          </Form>
         )}
       </Mutation>
     )
   }
 }
 
-export default injectIntl(withRouter(CreateThang))
+export default injectIntl(CreateThang)

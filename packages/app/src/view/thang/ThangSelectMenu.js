@@ -1,11 +1,17 @@
 // @flow
 import gql from 'graphql-tag'
 import React from 'react'
-import { Menu } from 'semantic-ui-react'
 import { FormattedMessage } from 'react-intl'
-import CreateThang from './CreateThang'
-import { NavLink } from 'react-router-dom'
 import { Query } from 'react-apollo'
+import { MenuLink, Empty, Item, Items, SecondaryMenu } from '../styled/Menu'
+import { H1 } from '../styled/Header'
+import { Button } from '../styled/Button'
+import { Add } from '../styled/Icon'
+import Modal from '../Modal'
+import type { ContextRouter } from 'react-router'
+
+import CreateThang from './CreateThang'
+import { withRouter } from 'react-router'
 
 const GET_THANGS = gql`
     query getThangs {
@@ -47,17 +53,19 @@ class ThangList extends React.Component<{ subscribe: () => mixed, thangs: { id: 
     return (
       this.props.thangs.length
         ? (
-          <Menu.Menu>
+          <Items>
             {this.props.thangs.map(({id, name}) => (
-              <Menu.Item key={id} as={NavLink} to={`/thangs/${id}`}>
-                {name}
-              </Menu.Item>
+              <Item key={id}>
+                <MenuLink to={`/thangs/${id}`}>
+                  {name}
+                </MenuLink>
+              </Item>
             ))}
-          </Menu.Menu>)
+          </Items>)
         : (
-          <i>
+          <Empty>
             <FormattedMessage id={'listThangs.empty'} />
-          </i>
+          </Empty>
         )
     )
   }
@@ -99,16 +107,48 @@ class ListThangs extends React.Component<{}> {
   }
 }
 
+class AddThang extends React.Component<ContextRouter, { open: boolean }> {
+  state = {open: false}
+
+  _onCreate = (id: string) => {
+    this.setState({open: false})
+    this.props.history.push(`/thangs/${id}`)
+  }
+  _open = () => this.setState({open: true})
+  _close = () => this.setState({open: false})
+
+  render () {
+    return (
+      <div>
+        <Button fluid color={'teal'} onClick={this._open}>
+          <Add />
+          <FormattedMessage id={'createThang'} />
+        </Button>
+        <Modal onClose={this._close} show={this.state.open}>
+          <H1>
+            <FormattedMessage id={'createThang'} />
+          </H1>
+          <p>
+            <FormattedMessage id={'AddThang.message'} />
+          </p>
+          <CreateThang onCreate={this._onCreate} />
+        </Modal>
+      </div>
+    )
+  }
+}
+
+const AddThangRouted = withRouter(AddThang)
+
 export default () => (
-  <Menu vertical secondary style={{position: 'absolute', left: 0, rigth: 0}}>
-    <Menu.Item>
-      <Menu.Header>
-        <FormattedMessage id={'listThangs.your'} />
-      </Menu.Header>
-      <ListThangs />
-    </Menu.Item>
-    <Menu.Item>
-      <CreateThang />
-    </Menu.Item>
-  </Menu>
+  <SecondaryMenu>
+    <H1>
+      <FormattedMessage id={'listThangs.your'} />
+    </H1>
+    <ListThangs />
+    <AddThangRouted />
+    <p>
+      <FormattedMessage id={'createThang.desc'} />
+    </p>
+  </SecondaryMenu>
 )

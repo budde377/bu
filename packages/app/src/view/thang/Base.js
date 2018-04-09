@@ -1,14 +1,14 @@
 // @flow
 
 import React from 'react'
-import { Header } from 'semantic-ui-react'
 import { FormattedMessage } from 'react-intl'
+import { H1 } from '../styled/Header'
 
 const BaseThang = () => (
   <div>
-    <Header>
+    <H1>
       <FormattedMessage id={'baseThang.header'} />
-    </Header>
+    </H1>
     <p>
       <FormattedMessage id={'baseThang.description'} />
     </p>

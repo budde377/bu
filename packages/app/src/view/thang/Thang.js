@@ -1,7 +1,6 @@
 // @flow
 
 import React from 'react'
-import { Header, Label, Message } from 'semantic-ui-react'
 import { withRouter } from 'react-router'
 import { Query } from 'react-apollo'
 import gql from 'graphql-tag'
@@ -10,6 +9,7 @@ import { FormattedMessage } from 'react-intl'
 import LogVisit from '../LogVisit'
 import OnMount from '../OnMount'
 import Logo from '../Logo'
+import { H1 } from '../styled/Header'
 
 const GET_THANG = gql`
     query getThangUsers($id: ID!){
@@ -53,41 +53,6 @@ const SUBSCRIBE_THANG = gql`
     }
 `
 
-type U = { displayName: string, id: string, picture: string }
-
-class ThangUsers extends React.Component<{ owners: U[], users: U[] }> {
-  render () {
-    const owners = this.props.owners.reduce((acc, u) => ({...acc, [u.id]: u}), {})
-    const users = this.props.users.reduce((acc, u) => (owners[u.id] ? acc : {...acc, [u.id]: u}), {})
-    return (
-      <Label.Group>
-        {Object.keys(owners)
-          .map(k => owners[k])
-          .map(({displayName, id, picture}) => (
-            <Label key={id} image>
-              <img src={picture} />
-              {displayName}
-              <Label.Detail>
-                <FormattedMessage id={'owner'} />
-              </Label.Detail>
-            </Label>
-          ))}
-        {Object.keys(users)
-          .map(k => users[k])
-          .map(({displayName, id, picture}) => (
-            <Label key={id} image>
-              <img src={picture} />
-              {displayName}
-              <Label.Detail>
-                <FormattedMessage id={'user'} />
-              </Label.Detail>
-            </Label>
-          ))}
-      </Label.Group>
-    )
-  }
-}
-
 class BaseThang extends React.Component<*> {
   render () {
     return (
@@ -103,16 +68,14 @@ class BaseThang extends React.Component<*> {
             }
             if (error) {
               return (
-                <Message negative>
-                  <FormattedMessage id={'thangView.error'} />
-                </Message>
+                null // TODO error handing
               )
             }
             if (!data.thang) {
               return (
-                <Header>
+                <H1>
                   <FormattedMessage id={'thangView.notFound'} />
-                </Header>
+                </H1>
               )
             }
             const subscribe = () => subscribeToMore({
@@ -130,11 +93,10 @@ class BaseThang extends React.Component<*> {
             return (
               <div>
                 <OnMount f={subscribe} />
-                <Header>
+                <H1>
                   {data.thang.name}
-                </Header>
+                </H1>
                 <LogVisit thang={data.thang.id} />
-                <ThangUsers users={data.thang.users} owners={data.thang.owners} />
                 <BookingTable thang={data.thang.id} timezone={data.thang.timezone} />
               </div>
             )

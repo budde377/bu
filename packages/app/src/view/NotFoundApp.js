@@ -1,12 +1,12 @@
 // @flow
 
 import React from 'react'
-import {Header} from 'semantic-ui-react'
 import Status from './Status'
+import { H1 } from './styled/Header'
 
 export default () => (
   <div>
     <Status statusCode={404} />
-    <Header> Not found 😢</Header>
+    <H1> Not found 😢</H1>
   </div>
 )
