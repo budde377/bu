@@ -13,14 +13,6 @@ module.exports = Merge(CommonConfig, {
   plugins: [
     new webpack.NamedModulesPlugin()
   ],
-  module: {
-    rules: [
-      {
-        test: /\.css$/,
-        loaders: ['style-loader', 'css-loader']
-      }
-    ]
-  },
   devServer: {
     proxy: {
       '/': {

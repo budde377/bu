@@ -6,7 +6,7 @@ export type Config = {
   accessToken: ?string
 }
 
-export default ({content, config, apolloState, version}: { apolloState: *, content: string, config: Config, version: string }) => (
+export default ({styles, content, config, apolloState, version}: { styles: Array<*>, apolloState: *, content: string, config: Config, version: string }) => (
   <html>
     <head>
       <title>Thang.io</title>
@@ -42,9 +42,11 @@ export default ({content, config, apolloState, version}: { apolloState: *, conte
         type={'application/javascript'}
         dangerouslySetInnerHTML={{__html: `window.__APOLLO_STATE__ = ${JSON.stringify(apolloState).replace(/</g, '\\u003c')}`}} />
       <script src={`/main.js?v=${version}`} async defer />
+      {styles}
     </head>
     <body>
       <div id={'content'} dangerouslySetInnerHTML={{__html: content}} />
+      <div id={'modal-root'} />
     </body>
   </html>
 )

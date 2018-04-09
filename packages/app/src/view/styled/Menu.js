@@ -1,7 +1,7 @@
 // @flow
 
 import styled from 'styled-components'
-import { Link } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { Avatar } from './User'
 import { H1 } from './Header'
 
@@ -53,11 +53,6 @@ export const AvatarContainer = styled.div`
     margin-left: -1.5em;
   }
 `
-export const Header = H1.extend`
-  font-style: italic;
-  font-size: 1.2em;
-  padding-top: 1em;
-`
 
 export const Content = styled.div`
   background-color: #fff;
@@ -66,7 +61,8 @@ export const Content = styled.div`
 `
 
 export const SecondaryContent = styled.div`
-  padding: 2em 1em;
+  padding: 2em 2rem;
+  width: calc(100% - 24rem)
 `
 
 export const SecondaryMenu = styled.nav`
@@ -77,11 +73,52 @@ export const SecondaryMenu = styled.nav`
     right: 0;
     top: 0;
     bottom: 0;
-    
+    p {
+      padding: 1em 0.5em;
+      font-style: italic;
+    }
+    ${H1} {
+      font-style: italic;
+      font-size: 1.2em;
+      padding-top: 1em;
+    }
+`
+
+export const MenuLink = styled(NavLink)`
+  text-decoration: none;
+  font-family: "Lato", sans-serif;
+  line-height: 2.5em;
+  padding-left: 2.5em;
+  display: block;
+  color: #000;
+  position: relative;
+  &::before {
+    content: '';
+    height: 0.7em;
+    width: 0.7em;
+    border-radius: 0.35em;
+    position: absolute;
+    left: 0.9em;
+    top: 0.9em;
+    transition: none;
+    background-color: transparent;
+  }
+  &.active::before{
+    transition: 0.5s background-color;
+    background-color: #fa4659;
+  }
 `
 
 export const Item = styled.li`
-  
+  border: 0.05em none #C6C6C6;
+  border-top-style: solid;
+  line-height: 2em;
+  &:last-of-type {
+    border-bottom-style: solid;  
+  }
+  ${MenuLink} {
+    font-size: inherit;
+  }
 `
 
 export const Empty = styled.div`
@@ -90,5 +127,6 @@ export const Empty = styled.div`
 `
 
 export const Items = styled.ul`
-  
+  list-style-type: none;
+  padding: 1em 0 2em;
 `
