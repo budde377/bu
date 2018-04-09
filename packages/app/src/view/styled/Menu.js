@@ -26,7 +26,7 @@ export const AvatarContainer = styled.div`
   width: 20rem;
   height: 100%;
   float: right;
-  background-color: #aaa;
+  background-color: #ededed;
   position: relative;
   overflow: hidden;
   
