@@ -3,6 +3,7 @@
 import styled from 'styled-components'
 import { H1 } from './Header'
 import { Form } from './Form'
+import { Icon } from './Icon'
 
 const modalWidth = 30
 
@@ -52,4 +53,20 @@ export const ModalBackdrop = styled.div`
   left: 0;
   width: 100%;
   height: 100%; 
+`
+
+export const Closer = styled.div`
+  height: 1em;
+  width: 1em;
+  position: absolute;
+  top: 0.5em;
+  right: 0.5em;
+  cursor: pointer;
+  ${Icon} {
+    width: 100%;
+    height: 100%;
+  }
+  ${Icon} svg {
+    fill: #fff;
+  }
 `

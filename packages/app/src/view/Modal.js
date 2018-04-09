@@ -1,7 +1,8 @@
 // @flow
 import React from 'react'
 import ReactDOM from 'react-dom'
-import { ModalContainer, ModalBackdrop, Modal as ModalStyle } from './styled/Modal'
+import { ModalContainer, ModalBackdrop, Modal as ModalStyle, Closer } from './styled/Modal'
+import { Exit } from './styled/Icon'
 
 export default class Modal extends React.Component<{ children: *, show: boolean, onClose: () => mixed }, { element: ?HTMLDivElement }> {
   state = {element: null}
@@ -34,6 +35,9 @@ export default class Modal extends React.Component<{ children: *, show: boolean,
       <ModalContainer show={this.props.show}>
         <ModalBackdrop onClick={this.props.onClose} />
         <ModalStyle>
+          <Closer onClick={this.props.onClose}>
+            <Exit />
+          </Closer>
           {this.props.children}
         </ModalStyle>
       </ModalContainer>,
