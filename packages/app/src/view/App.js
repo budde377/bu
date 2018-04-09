@@ -22,6 +22,7 @@ const GET_ME = gql`
             id
             picture
             displayName
+            emailVerified
         }
     }
 `
@@ -29,7 +30,8 @@ const GET_ME = gql`
 type User = {
   id: string,
   picture: string,
-  displayName: string
+  displayName: string,
+  emailVerified: boolean
 }
 
 const LoggedInMenu = ({user}: { user: User }) => (
@@ -59,7 +61,7 @@ const App = () => (
     <Query query={GET_ME}>
       {({loading, error, data}) => {
         if (loading) {
-          return <Logo loading />
+          return <Logo loading /> // TODO fix humongous loading
         }
         const me: ?User = data.me
         if (!me) {
