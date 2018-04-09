@@ -107,14 +107,14 @@ class ListThangs extends React.Component<{}> {
   }
 }
 
-class AddThang extends React.Component<ContextRouter, { open: boolean }> {
-  state = {open: false}
+class AddThang extends React.Component<ContextRouter, { open: boolean, sesh: number }> {
+  state = {open: false, sesh: 0}
 
   _onCreate = (id: string) => {
-    this.setState({open: false})
+    this._close()
     this.props.history.push(`/thangs/${id}`)
   }
-  _open = () => this.setState({open: true})
+  _open = () => this.setState(({sesh}) => ({open: true, sesh: sesh + 1}))
   _close = () => this.setState({open: false})
 
   render () {
@@ -131,7 +131,7 @@ class AddThang extends React.Component<ContextRouter, { open: boolean }> {
           <p>
             <FormattedMessage id={'AddThang.message'} />
           </p>
-          <CreateThang onCreate={this._onCreate} />
+          <CreateThang onCreate={this._onCreate} key={this.state.sesh} />
         </Modal>
       </div>
     )

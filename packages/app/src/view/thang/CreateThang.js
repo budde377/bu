@@ -19,7 +19,6 @@ const CREATE_THANG = gql`
 
 class CreateThang extends React.Component<{ onCreate: (id: string) => mixed } & InjectIntlProvidedProps, { name: string, submitted: boolean }> {
   state = {name: '', submitted: false}
-  _reset = ((initialState) => () => this.setState(initialState))(this.state)
   _onChange = (evt: *) => this.setState({name: evt.target.value})
 
   _onSubmit = (createThang) => async (evt) => {
@@ -32,7 +31,6 @@ class CreateThang extends React.Component<{ onCreate: (id: string) => mixed } & 
     if (!r.data) {
       return
     }
-    this._reset()
     this.props.onCreate(r.data.createThang.id)
   }
 
