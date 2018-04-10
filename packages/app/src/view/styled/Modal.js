@@ -34,6 +34,7 @@ export const Modal = styled.div`
 
 export const ModalContainer = styled.div`
   position: fixed;
+  z-index: 1000;
   height: ${props => props.show ? 100 : 0}%;
   transition: 1s height;
   overflow: hidden;
