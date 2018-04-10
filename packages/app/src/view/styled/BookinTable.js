@@ -112,10 +112,23 @@ export const TimeCell = styled.div`
   }
 `
 
+function backgroundColor ({percent, owner, me}) {
+  if (percent) {
+    return '#f3f3f3'
+  }
+  if (owner === me) {
+    return '#ff909a'
+  }
+  if (owner) {
+    return '#7fcdd7'
+  }
+  return '#e5e5e5'
+}
+
 export const Cell = styled.div`
   flex-grow: 1;
   border: 0.01em solid #fff;
-  background-color: ${({percent}) => percent ? '#f3f3f3' : '#e5e5e5'};
+  background-color: ${backgroundColor};
   flex-shrink: 1;
   text-align: center;
   height: 3em;
@@ -139,7 +152,7 @@ export const Cell = styled.div`
     position: absolute;
     border-radius: 1em;
     border: 0.1em solid transparent;
-    border-color: ${props => props.owner ? (props.owner === props.me ? '#FA4659' : '#11CBD7') : 'transparent'};
+    border-color: ${props => props.owner ? '#fff ' : 'transparent'};
     top: 0.4em;
     left: 50%;
     margin-left: -1.1em;
