@@ -5,7 +5,10 @@ import { FormattedDate } from 'react-intl'
 import moment from 'moment-timezone'
 import { Mutation, Query } from 'react-apollo'
 import gql from 'graphql-tag'
-import { Body, Cell, Header, HeaderCell, Row, Table, Time, TimeCell } from '../styled/BookinTable'
+import {
+  Body, Cell, Header, HeaderCell, HeaderTable, Row, Table, TableScroll, Time,
+  TimeCell
+} from '../styled/BookinTable'
 import { Avatar } from '../styled/User'
 
 type BookingTableProps = {
@@ -218,7 +221,7 @@ class BookingTableBody extends React.Component<{ now: moment, thang: string, boo
       return
     }
     const {cellIndex, rowIndex} = position
-    const start = this.props.now.clone().hour(rowIndex - 1).add(cellIndex - 1, 'd')
+    const start = this.props.now.clone().hour(rowIndex).add(cellIndex - 1, 'd')
     const end = start.clone().add(1, 'h')
     const current = this._currentBooking(momentToDt(start))
     if (current) {
@@ -312,84 +315,90 @@ class BookingTable extends React.Component<BookingTableProps> {
     const variables = {from, to, thang: this.props.thang}
     const key = `${this.props.thang}.${dtToString(from)}.${dtToString(to)}` // Force remount when vars change
     return (
-      <Table>
-        <Header>
-          <Row>
-            <HeaderCell />
-            <HeaderCell>
-              <FormattedDate
-                units={'day'}
-                month={'long'}
-                year={'numeric'}
-                day={'numeric'}
-                value={now.toDate()}
-              />
-            </HeaderCell>
-            <HeaderCell>
-              <FormattedDate
-                units={'day'}
-                month={'long'}
-                year={'numeric'}
-                day={'numeric'}
-                value={now.clone().add(1, 'd').toDate()}
-              />
-            </HeaderCell>
-            <HeaderCell textAlign={'center'}>
-              <FormattedDate
-                units={'day'}
-                month={'long'}
-                year={'numeric'}
-                day={'numeric'}
-                value={now.clone().add(2, 'd').toDate()}
-              />
-            </HeaderCell>
-            <HeaderCell textAlign={'center'}>
-              <FormattedDate
-                units={'day'}
-                month={'long'}
-                year={'numeric'}
-                day={'numeric'}
-                value={now.clone().add(3, 'd').toDate()}
-              />
-            </HeaderCell>
-          </Row>
-        </Header>
-        <Query
-          key={key}
-          query={GET_BOOKINGS}
-          fetchPolicy='cache-and-network'
-          variables={variables}>
-          {({loading, error, data, subscribeToMore}) => {
-            return (
-              <BookingTableBody
-                subscribe={() =>
-                  subscribeToMore({
-                    document: SUBSCRIBE_BOOKINGS,
-                    variables,
-                    updateQuery: (prev, {subscriptionData}) => {
-                      if (!subscriptionData.data) return prev
-                      const {bookingsChange: {add, change, remove}} = subscriptionData.data
-                      const old = prev.thang.bookings
-                      const t1 = add
-                        ? [...old, add]
-                        : old
-                      const t2 = change
-                        ? t1.map((t) => t.id === change.id ? change : t)
-                        : t1
-                      const bookings = remove
-                        ? t2.filter((t) => t.id !== remove.id)
-                        : t2
-                      return {...prev, thang: {...prev.thang, bookings}}
+      <div>
+        <HeaderTable>
+          <Header>
+            <Row>
+              <HeaderCell />
+              <HeaderCell>
+                <FormattedDate
+                  units={'day'}
+                  month={'long'}
+                  year={'numeric'}
+                  day={'numeric'}
+                  value={now.toDate()}
+                />
+              </HeaderCell>
+              <HeaderCell>
+                <FormattedDate
+                  units={'day'}
+                  month={'long'}
+                  year={'numeric'}
+                  day={'numeric'}
+                  value={now.clone().add(1, 'd').toDate()}
+                />
+              </HeaderCell>
+              <HeaderCell textAlign={'center'}>
+                <FormattedDate
+                  units={'day'}
+                  month={'long'}
+                  year={'numeric'}
+                  day={'numeric'}
+                  value={now.clone().add(2, 'd').toDate()}
+                />
+              </HeaderCell>
+              <HeaderCell textAlign={'center'}>
+                <FormattedDate
+                  units={'day'}
+                  month={'long'}
+                  year={'numeric'}
+                  day={'numeric'}
+                  value={now.clone().add(3, 'd').toDate()}
+                />
+              </HeaderCell>
+            </Row>
+          </Header>
+        </HeaderTable>
+        <TableScroll>
+          <Table>
+            <Query
+              key={key}
+              query={GET_BOOKINGS}
+              fetchPolicy='cache-and-network'
+              variables={variables}>
+              {({loading, error, data, subscribeToMore}) => {
+                return (
+                  <BookingTableBody
+                    subscribe={() =>
+                      subscribeToMore({
+                        document: SUBSCRIBE_BOOKINGS,
+                        variables,
+                        updateQuery: (prev, {subscriptionData}) => {
+                          if (!subscriptionData.data) return prev
+                          const {bookingsChange: {add, change, remove}} = subscriptionData.data
+                          const old = prev.thang.bookings
+                          const t1 = add
+                            ? [...old, add]
+                            : old
+                          const t2 = change
+                            ? t1.map((t) => t.id === change.id ? change : t)
+                            : t1
+                          const bookings = remove
+                            ? t2.filter((t) => t.id !== remove.id)
+                            : t2
+                          return {...prev, thang: {...prev.thang, bookings}}
+                        }
+                      })
                     }
-                  })
-                }
-                now={now}
-                thang={this.props.thang}
-                bookings={data && data.thang ? data.thang.bookings : null} />
-            )
-          }}
-        </Query>
-      </Table>
+                    now={now}
+                    thang={this.props.thang}
+                    bookings={data && data.thang ? data.thang.bookings : null} />
+                )
+              }}
+            </Query>
+          </Table>
+        </TableScroll>
+      </div>
     )
   }
 }

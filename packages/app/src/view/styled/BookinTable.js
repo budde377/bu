@@ -7,9 +7,9 @@ export const Table = styled.table`
   width: 100%;
   border-spacing: 0.1em;
   border-collapse: separate;
-  margin-top: 1em;
   overflow: hidden;
 `
+
 export const Header = styled.thead`
 
 `
@@ -23,6 +23,23 @@ export const HeaderCell = styled.th`
   color: #fff;
   font-weight: normal;
   height: 2.5em;
+`
+export const HeaderTable = styled.table`
+  width: 100%;
+  border-spacing: 0.1em;
+  border-collapse: separate;
+  margin-top: 1em;
+  overflow: hidden;
+  ${HeaderCell}:first-of-type {
+    width: 3em;
+    opacity: 0.5;
+  }
+  
+`
+
+export const TableScroll = styled.div`
+  overflow-y: scroll;
+  height: calc(100vh - 8em - 5rem);
 `
 
 export const Time = styled.div`
@@ -52,11 +69,15 @@ export const Cell = styled.td`
   height: 3em;
   background-color: #E5E5E5;
   cursor: pointer;
+  position: relative;
   ${Avatar} {
     height: 2em;
     width: 2em;
+    position: absolute;
     border-radius: 1em;
-    margin: 0.5em auto;
+    top: 0.5em;
+    left: 50%;
+    margin-left: -1em;
   }
 `
 
