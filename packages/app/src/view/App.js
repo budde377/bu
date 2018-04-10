@@ -11,7 +11,7 @@ import { hot } from 'react-hot-loader'
 import NotFoundApp from './NotFoundApp'
 import Logo from './Logo'
 import PublicApp from './PublicApp'
-import { AvatarContainer, LogoLink, Menu } from './styled/Menu'
+import { AvatarContainer, BaseContainer, LogoLink, Menu } from './styled/Menu'
 import { Avatar } from './styled/User'
 
 addLocaleData(englishLocaleData)
@@ -46,14 +46,14 @@ const LoggedInMenu = ({user}: { user: User }) => (
 )
 
 const LoggedInApp = ({user}: { user: User }) => (
-  <div>
+  <BaseContainer>
     <LoggedInMenu user={user} />
     <Switch>
       <Route path={'/thangs'} component={Thang} />
       <Redirect from={'/'} to={'/thangs'} exact />
       <Route component={NotFoundApp} />
     </Switch>
-  </div>
+  </BaseContainer>
 )
 
 const App = () => (

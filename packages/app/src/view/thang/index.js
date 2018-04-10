@@ -16,5 +16,6 @@ export default withRouter(({match}: *) => (
       </Switch>
     </SecondaryContent>
     <ThangSelectMenu />
+    <div style={{clear: 'both'}} />
   </Content>
 ))

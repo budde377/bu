@@ -16,16 +16,22 @@ export const LogoLink = styled(Link)`
   }
 `
 
+export const BaseContainer = styled.div`
+  display: table;
+  width: 100%;
+`
+
 export const Menu = styled.nav`
   background-color: #F7F7F7;
   height: 5rem;
-  display: block;
+  display: table-row;
 `
 
 export const AvatarContainer = styled.div`
   width: 20rem;
   height: 100%;
   float: right;
+  display: table-cell;
   background-color: #ededed;
   position: relative;
   overflow: hidden;
@@ -56,23 +62,27 @@ export const AvatarContainer = styled.div`
 
 export const Content = styled.div`
   background-color: #fff;
-  height: calc(100% - 5rem);
+  min-height: calc(100% - 5rem);
   position: relative;
+  display: table-row;
 `
 
 export const SecondaryContent = styled.div`
-  padding: 2em 2rem;
-  width: calc(100% - 24rem)
+  width: calc(100% - 20rem);
+  float: left;
+  display: table-cell;
+  ${H1} {
+    padding: 1em 2rem 0;
+  }
 `
 
 export const SecondaryMenu = styled.nav`
     background-color: #EDEDED;
     width: calc(20rem - 2em);
     padding: 1em;
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
+    display: table-cell;
+    height: 100%;
+    float: right;
     p {
       padding: 1em 0.5em;
       font-style: italic;

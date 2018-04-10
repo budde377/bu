@@ -5,7 +5,7 @@ import { FormattedDate } from 'react-intl'
 import moment from 'moment-timezone'
 import { Mutation, Query } from 'react-apollo'
 import gql from 'graphql-tag'
-import { Body, Cell, Header, HeaderCell, Row, Table } from '../styled/BookinTable'
+import { Body, Cell, Header, HeaderCell, Row, Table, Time, TimeCell } from '../styled/BookinTable'
 import { Avatar } from '../styled/User'
 
 type BookingTableProps = {
@@ -261,15 +261,17 @@ class BookingTableBody extends React.Component<{ now: moment, thang: string, boo
                   range(24)
                     .map(i => (
                       <Row key={i}>
-                        <Cell textAlign={'right'}>
-                          {i}:00-{i + 1}:00
-                        </Cell>
+                        <TimeCell>
+                          <Time>
+                            {i + 1}:00
+                          </Time>
+                        </TimeCell>
                         {range(4)
                           .map((j) => {
                             const n = this.props.now.clone().add(j, 'd').add(i, 'h')
                             const current = this._currentBooking(momentToDt(n))
                             return (
-                              <Cell textAlign={'center'} key={j}>
+                              <Cell key={j}>
                                 {
                                   current
                                     ? (<Avatar picture={current.owner.picture} />)
