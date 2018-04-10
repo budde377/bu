@@ -71,6 +71,8 @@ export const SecondaryContent = styled.div`
   width: calc(100% - 20rem);
   float: left;
   display: table-cell;
+  height: 100%;
+  position: relative;
   ${H1} {
     padding: 1em 2rem 0;
   }

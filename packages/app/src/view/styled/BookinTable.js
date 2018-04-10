@@ -38,8 +38,12 @@ export const HeaderTable = styled.table`
 `
 
 export const TableScroll = styled.div`
-  overflow-y: scroll;
-  height: calc(100vh - 8em - 5rem);
+    position: absolute;
+    bottom: 0;
+    top: 7.91em;
+    left: 0;
+    right: 0;
+    overflow-y: scroll;
 `
 
 export const Time = styled.div`
