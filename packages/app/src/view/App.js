@@ -11,7 +11,7 @@ import { hot } from 'react-hot-loader'
 import NotFoundApp from './NotFoundApp'
 import Logo from './Logo'
 import PublicApp from './PublicApp'
-import { AvatarContainer, BaseContainer, LogoLink, Menu } from './styled/Menu'
+import { AvatarContainer, BaseContainer, LogoLink, Menu, NotAvatarContainer } from './styled/Menu'
 import { Avatar } from './styled/User'
 
 addLocaleData(englishLocaleData)
@@ -36,9 +36,11 @@ type User = {
 
 const LoggedInMenu = ({user}: { user: User }) => (
   <Menu>
-    <LogoLink to={'/'}>
-      <img src={require('../../images/logo_named.svg')} />
-    </LogoLink>
+    <NotAvatarContainer>
+      <LogoLink to={'/'}>
+        <img src={require('../../images/logo_named.svg')} />
+      </LogoLink>
+    </NotAvatarContainer>
     <AvatarContainer backgroundImage={user.picture}>
       <Avatar picture={user.picture} />
     </AvatarContainer>

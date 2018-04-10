@@ -10,6 +10,7 @@ import LogVisit from '../LogVisit'
 import OnMount from '../OnMount'
 import Logo from '../Logo'
 import { H1 } from '../styled/Header'
+import { Container, Top } from '../styled/Thang'
 
 const GET_THANG = gql`
     query getThangUsers($id: ID!){
@@ -56,7 +57,7 @@ const SUBSCRIBE_THANG = gql`
 class BaseThang extends React.Component<*> {
   render () {
     return (
-      <div key={this.props.match.params.id}>
+      <Container key={this.props.match.params.id}>
         <Query query={GET_THANG} variables={{id: this.props.match.params.id}} ssr={false}>
           {({loading, error, data, subscribeToMore}) => {
             if (loading) {
@@ -90,19 +91,19 @@ class BaseThang extends React.Component<*> {
                 return change
               }
             })
-            return (
-              <div>
-                <OnMount f={subscribe} />
+            return [
+              <Top key={'header'}>
                 <H1>
                   {data.thang.name}
+                  <OnMount f={subscribe} />
+                  <LogVisit thang={data.thang.id} />
                 </H1>
-                <LogVisit thang={data.thang.id} />
-                <BookingTable thang={data.thang.id} timezone={data.thang.timezone} />
-              </div>
-            )
+              </Top>,
+              <BookingTable thang={data.thang.id} timezone={data.thang.timezone} key={'table'} />
+            ]
           }}
         </Query>
-      </div>
+      </Container>
     )
   }
 }

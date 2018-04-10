@@ -17,24 +17,33 @@ export const LogoLink = styled(Link)`
 `
 
 export const BaseContainer = styled.div`
-  display: table;
-  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 `
 
 export const Menu = styled.nav`
   background-color: #F7F7F7;
   height: 5rem;
-  display: table-row;
+  display: flex;
+  flex-direction: row;
+  align-content: stretch;
+`
+
+export const NotAvatarContainer = styled.div`
+  flex-grow: 1;
+  flex-shrink: 1;
 `
 
 export const AvatarContainer = styled.div`
   width: 20rem;
-  height: 100%;
-  float: right;
-  display: table-cell;
   background-color: #ededed;
   position: relative;
   overflow: hidden;
+  flex-grow: 0;
+  flex-shrink: 0;
   
   :before {
     content: "";
@@ -64,14 +73,14 @@ export const Content = styled.div`
   background-color: #fff;
   min-height: calc(100% - 5rem);
   position: relative;
-  display: table-row;
+  display: flex;
+  flex-direction: row;
+  align-content: stretch;
 `
 
 export const SecondaryContent = styled.div`
-  width: calc(100% - 20rem);
-  float: left;
-  display: table-cell;
-  height: 100%;
+  flex-grow: 1;
+  flex-shrink: 1;
   position: relative;
   ${H1} {
     padding: 1em 2rem 0;
@@ -81,9 +90,9 @@ export const SecondaryContent = styled.div`
 export const SecondaryMenu = styled.nav`
     background-color: #EDEDED;
     width: calc(20rem - 2em);
+    flex-grow: 0;
+    flex-shrink: 0;
     padding: 1em;
-    display: table-cell;
-    height: 100%;
     float: right;
     p {
       padding: 1em 0.5em;

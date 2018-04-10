@@ -6,7 +6,7 @@ import moment from 'moment-timezone'
 import { Mutation, Query } from 'react-apollo'
 import gql from 'graphql-tag'
 import {
-  Body, Cell, Header, HeaderCell, HeaderTable, Row, Table, TableScroll, Time,
+  Body as TBaddy, Cell, FauxCheck, Header, HeaderCell, Row, Table, TableScroll, Time,
   TimeCell
 } from '../styled/BookinTable'
 import { Avatar } from '../styled/User'
@@ -18,25 +18,14 @@ type BookingTableProps = {
 
 const range = (n) => Array(n).fill(0).map((x, y) => x + y)
 
-function findCell (e: ?Element, stopper: ?Element): ?HTMLTableCellElement {
+function findCell (e: ?Element, stopper: ?Element): ?{ cellIndex: number, rowIndex: number } {
   if (!e || e === stopper) return null
-  if (e instanceof HTMLTableCellElement) {
-    return e
+  const cellIndex = e.dataset.cellIndex
+  const rowIndex = e.dataset.rowIndex
+  if (cellIndex && rowIndex) {
+    return {cellIndex: parseInt(cellIndex), rowIndex: parseInt(rowIndex)}
   }
   return findCell(e.parentElement, stopper)
-}
-
-function cellPosition (cell: HTMLTableCellElement): ?{ cellIndex: number, rowIndex: number } {
-  const cellIndex = cell.cellIndex
-  const parent = cell.parentElement
-  if (!parent || !(parent instanceof HTMLTableRowElement)) {
-    return null
-  }
-  const rowIndex = parent.rowIndex
-  if (typeof rowIndex !== 'number') {
-    return null
-  }
-  return {cellIndex, rowIndex}
 }
 
 const GET_BOOKINGS = gql`
@@ -46,6 +35,7 @@ const GET_BOOKINGS = gql`
             bookings(input: {from: $from, to: $to}) {
                 id
                 owner {
+                    id
                     picture
                 }
                 from {
@@ -63,6 +53,9 @@ const GET_BOOKINGS = gql`
                     year
                 }
             }
+        }
+        me {
+            id
         }
     }
 `
@@ -88,6 +81,7 @@ const SUBSCRIBE_BOOKINGS = gql`
             add {
                 id
                 owner {
+                    id
                     picture
                 }
                 from {
@@ -118,6 +112,7 @@ const SUBSCRIBE_BOOKINGS = gql`
                     year
                 }
                 owner {
+                    id
                     picture
                 }
                 to {
@@ -154,7 +149,7 @@ function momentToDt (m: moment): Dt {
 type Booking = {
   from: Dt,
   to: Dt,
-  owner: { picture: string },
+  owner: { picture: string, id: string },
   id: string
 }
 
@@ -188,7 +183,9 @@ function parseBookings (bs: Booking[]): Bookings {
   }, {})
 }
 
-class BookingTableBody extends React.Component<{ now: moment, thang: string, bookings: ?Array<Booking>, subscribe: () => mixed }, { bookings: Bookings }> {
+class BookingTableBody extends React.Component<{ me: ?string, days: number, offset: moment, now: moment, thang: string, bookings: ?Array<Booking>, subscribe: () => (() => mixed) }, { bookings: Bookings }> {
+  _unsubscribe: ?() => mixed = null
+
   constructor (props: *) {
     super(props)
     const bookings = parseBookings(props.bookings || [])
@@ -196,32 +193,34 @@ class BookingTableBody extends React.Component<{ now: moment, thang: string, boo
   }
 
   componentDidMount () {
-    this.props.subscribe()
+    this._unsubscribe = this.props.subscribe()
   }
 
-  componentWillReceiveProps ({bookings}) {
+  componentWillReceiveProps ({bookings, days, offset}) {
+    if (!offset.isSame(this.props.offset, 'd') || days !== this.props.days) {
+      if (this._unsubscribe) {
+        this._unsubscribe()
+      }
+      this._unsubscribe = this.props.subscribe()
+    }
+
     if (bookings === this.props.bookings) {
       return
     }
     this.setState({bookings: parseBookings(bookings || [])})
   }
 
-  _ref: ?HTMLTableSectionElement = null
   _onClick = (createMutator, deleteMutator) => (evt: MouseEvent) => {
     const target = evt.target
     if (!(target instanceof Element)) {
       return
     }
-    const cell = findCell(target, this._ref)
-    if (!cell) {
-      return
-    }
-    const position = cellPosition(cell)
+    const position = findCell(target)
     if (!position) {
       return
     }
     const {cellIndex, rowIndex} = position
-    const start = this.props.now.clone().hour(rowIndex).add(cellIndex - 1, 'd')
+    const start = this.props.offset.clone().hour(rowIndex).add(cellIndex, 'd')
     const end = start.clone().add(1, 'h')
     const current = this._currentBooking(momentToDt(start))
     if (current) {
@@ -240,9 +239,6 @@ class BookingTableBody extends React.Component<{ now: moment, thang: string, boo
       })
     }
   }
-  _refPuller = (r: ?HTMLTableSectionElement) => {
-    this._ref = r
-  }
 
   _currentBooking (n: Dt): ?Booking {
     return (
@@ -260,33 +256,40 @@ class BookingTableBody extends React.Component<{ now: moment, thang: string, boo
           <Mutation mutation={CREATE_BOOKING}>
             {(createMutator) => {
               return (
-                <Body onClick={this._onClick(createMutator, deleteMutator)} ref={this._refPuller}>{
-                  range(24)
-                    .map(i => (
-                      <Row key={i}>
-                        <TimeCell>
-                          <Time>
-                            {i + 1}:00
-                          </Time>
-                        </TimeCell>
-                        {range(4)
-                          .map((j) => {
-                            const n = this.props.now.clone().add(j, 'd').add(i, 'h')
-                            const current = this._currentBooking(momentToDt(n))
-                            return (
-                              <Cell key={j}>
-                                {
-                                  current
-                                    ? (<Avatar picture={current.owner.picture} />)
-                                    : (<input type={'checkbox'} checked={false} />)
-                                }
-                              </Cell>
-                            )
-                          })}
-                      </Row>
-                    ))
-                }
-                </Body>
+                <TBaddy onClick={this._onClick(createMutator, deleteMutator)}>
+                  <TableScroll>
+                    {
+                      range(24)
+                        .map(i => (
+                          <Row key={i}>
+                            <TimeCell>
+                              <Time>
+                                {i + 1}:00
+                              </Time>
+                            </TimeCell>
+                            {range(this.props.days)
+                              .map((j) => {
+                                const n = this.props.offset.clone().add(j, 'd').hour(i)
+                                const current = this._currentBooking(momentToDt(n))
+                                return (
+                                  <Cell
+                                    key={j} data-cell-index={j} data-row-index={i} me={this.props.me}
+                                    owner={current && current.owner.id}
+                                    percent={(this.props.now.isSame(n, 'h') ? this.props.now.minute() / 60 : (Math.max(0, Math.min(1, this.props.now.diff(n, 'h')))))}>
+                                    {
+                                      current
+                                        ? (
+                                          <Avatar picture={current.owner.picture} />)
+                                        : (<FauxCheck />)
+                                    }
+                                  </Cell>
+                                )
+                              })}
+                          </Row>
+                        ))
+                    }
+                  </TableScroll>
+                </TBaddy>
               )
             }}
           </Mutation>
@@ -296,109 +299,130 @@ class BookingTableBody extends React.Component<{ now: moment, thang: string, boo
   }
 }
 
-function dtToString (dt: Dt) {
-  return `${dt.year}.${dt.month}.${dt.day}.${dt.hour}.${dt.minute}`
-}
+class OnResize extends React.Component<{ on: (p: number) => mixed }> {
+  _ref: ?HTMLDivElement = null
 
-class BookingTable extends React.Component<BookingTableProps> {
-  _now: moment
+  _resize = () => {
+    if (!this._ref) {
+      return
+    }
+    this.props.on(this._ref.offsetWidth)
+  }
 
-  constructor (props: *) {
-    super(props)
-    this._now = moment.tz(props.timezone).hour(0).minute(0)
+  componentDidMount () {
+    window.addEventListener('resize', this._resize)
+    if (!this._ref) {
+      return
+    }
+    this.props.on(this._ref.offsetWidth)
+  }
+
+  componentWillUnmount () {
+    window.removeEventListener('resize', this._resize)
+  }
+
+  _rp = (ref: ?HTMLDivElement) => {
+    this._ref = ref
   }
 
   render () {
-    const now = this._now
-    const from = momentToDt(now)
-    const to = momentToDt(now.clone().add(4))
-    const variables = {from, to, thang: this.props.thang}
-    const key = `${this.props.thang}.${dtToString(from)}.${dtToString(to)}` // Force remount when vars change
     return (
-      <div>
-        <HeaderTable>
-          <Header>
-            <Row>
-              <HeaderCell />
-              <HeaderCell>
-                <FormattedDate
-                  units={'day'}
-                  month={'long'}
-                  year={'numeric'}
-                  day={'numeric'}
-                  value={now.toDate()}
-                />
-              </HeaderCell>
-              <HeaderCell>
-                <FormattedDate
-                  units={'day'}
-                  month={'long'}
-                  year={'numeric'}
-                  day={'numeric'}
-                  value={now.clone().add(1, 'd').toDate()}
-                />
-              </HeaderCell>
-              <HeaderCell textAlign={'center'}>
-                <FormattedDate
-                  units={'day'}
-                  month={'long'}
-                  year={'numeric'}
-                  day={'numeric'}
-                  value={now.clone().add(2, 'd').toDate()}
-                />
-              </HeaderCell>
-              <HeaderCell textAlign={'center'}>
-                <FormattedDate
-                  units={'day'}
-                  month={'long'}
-                  year={'numeric'}
-                  day={'numeric'}
-                  value={now.clone().add(3, 'd').toDate()}
-                />
-              </HeaderCell>
-            </Row>
-          </Header>
-        </HeaderTable>
-        <TableScroll>
-          <Table>
-            <Query
-              key={key}
-              query={GET_BOOKINGS}
-              fetchPolicy='cache-and-network'
-              variables={variables}>
-              {({loading, error, data, subscribeToMore}) => {
-                return (
-                  <BookingTableBody
-                    subscribe={() =>
-                      subscribeToMore({
-                        document: SUBSCRIBE_BOOKINGS,
-                        variables,
-                        updateQuery: (prev, {subscriptionData}) => {
-                          if (!subscriptionData.data) return prev
-                          const {bookingsChange: {add, change, remove}} = subscriptionData.data
-                          const old = prev.thang.bookings
-                          const t1 = add
-                            ? [...old, add]
-                            : old
-                          const t2 = change
-                            ? t1.map((t) => t.id === change.id ? change : t)
-                            : t1
-                          const bookings = remove
-                            ? t2.filter((t) => t.id !== remove.id)
-                            : t2
-                          return {...prev, thang: {...prev.thang, bookings}}
-                        }
-                      })
+      <div ref={this._rp} />
+    )
+  }
+}
+
+class Clock extends React.Component<{ tick: (t: moment) => mixed, tz: string }> {
+  _interval: ?IntervalID
+
+  componentDidMount () {
+    this._interval = setInterval(() => this.props.tick(moment.tz(this.props.tz)), 10 * 1000)
+  }
+
+  componentWillUnmount () {
+    if (!this._interval) {
+      return
+    }
+    clearInterval(this._interval)
+  }
+
+  render () {
+    return null
+  }
+}
+
+class BookingTable extends React.Component<BookingTableProps, { days: number, now: moment }> {
+  state = {days: 0, now: moment.tz(this.props.timezone)}
+
+  _resize = (p: number) => this.setState({days: Math.floor(p / 250)})
+  _updateTime = (now: moment) => this.setState({now})
+
+  render () {
+    const now = this.state.now
+    const from = now.clone()
+    const to = now.clone().add(this.state.days, 'd')
+    const variables = {from: momentToDt(from), to: momentToDt(to), thang: this.props.thang}
+    return (
+      <Table>
+        <Clock tick={this._updateTime} tz={this.props.timezone} />
+        <OnResize on={this._resize} />
+        <Header>
+          <Row>
+            <HeaderCell />
+            {range(this.state.days).map(i => {
+              const dt = now.clone().add(i, 'd')
+              return (
+                <HeaderCell key={i} today={dt.isSame(now, 'd')}>
+                  <FormattedDate
+                    weekday={'short'}
+                    month={'long'}
+                    year={from.year() !== to.year() ? 'numeric' : undefined}
+                    day={'numeric'}
+                    value={dt.toDate()}
+                  />
+                </HeaderCell>
+              )
+            })}
+          </Row>
+        </Header>
+        <Query
+          query={GET_BOOKINGS}
+          fetchPolicy='cache-and-network'
+          variables={variables}>
+          {({loading, error, data, subscribeToMore}) => {
+            return (
+              <BookingTableBody
+                me={(data && data.me && data.me.id) || null}
+                days={this.state.days}
+                subscribe={() =>
+                  subscribeToMore({
+                    document: SUBSCRIBE_BOOKINGS,
+                    variables,
+                    updateQuery: (prev, {subscriptionData}) => {
+                      if (!subscriptionData.data) return prev
+                      const {bookingsChange: {add, change, remove}} = subscriptionData.data
+                      const old = prev.thang.bookings
+                      const t1 = add
+                        ? [...old, add]
+                        : old
+                      const t2 = change
+                        ? t1.map((t) => t.id === change.id ? change : t)
+                        : t1
+                      const bookings = remove
+                        ? t2.filter((t) => t.id !== remove.id)
+                        : t2
+                      return {...prev, thang: {...prev.thang, bookings}}
                     }
-                    now={now}
-                    thang={this.props.thang}
-                    bookings={data && data.thang ? data.thang.bookings : null} />
-                )
-              }}
-            </Query>
-          </Table>
-        </TableScroll>
-      </div>
+                  })
+                }
+                now={now}
+                offset={now}
+                thang={this.props.thang}
+                bookings={data && data.thang ? data.thang.bookings : null} />
+            )
+          }}
+        </Query>
+      </Table>
     )
   }
 }

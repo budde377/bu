@@ -12,6 +12,6 @@ body {
     padding: 0;
 }
 
-#content, #content > div {
+#content {
     min-height: 100%;
 }
