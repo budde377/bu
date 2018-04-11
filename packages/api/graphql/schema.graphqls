@@ -1,0 +1,109 @@
+type DateTime {
+    hour: Int
+    minute: Int
+    day: Int
+    month: Int
+    year: Int
+}
+
+type User {
+    id: ID!
+    name: String
+    nickname: String
+    givenName: String
+    familyName: String
+    displayName: String!
+    thangs: [Thang!]!
+    bookings(input: ListBookingsInput): [Booking!]!
+    picture: String!
+    collections: [ThangCollection!]!
+    email: String
+    emailVerified: Boolean
+    timezone: String
+}
+type ThangCollection {
+    id: ID!
+    name: String!
+    thangs: [Thang!]!
+    owners: [User!]!
+}
+
+input DateTimeInput {
+    hour: Int
+    minute: Int
+    day: Int
+    month: Int
+    year: Int
+}
+
+input ListBookingsInput {
+    from: DateTimeInput
+    to: DateTimeInput
+}
+
+type Thang {
+    id: ID!
+    name: String!
+    owners: [User!]!
+    users: [User!]!
+    bookings(input: ListBookingsInput): [Booking!]!
+    collection: ThangCollection
+    timezone: String!
+}
+type Booking {
+    id: ID!
+    from: DateTime!
+    to: DateTime!
+    owner: User!
+    thang: Thang!
+}
+type Query {
+    thang(id: ID!): Thang
+    user(id: ID, email: String): User
+    me: User
+}
+
+type DeleteResult {
+    deleted: Int
+}
+
+type VisitLogEntry {
+    id: ID!
+    thang: Thang!
+    user: User!
+}
+
+type Mutation {
+    createBooking(thang: ID!, from: DateTimeInput!, to: DateTimeInput!): Booking!
+    createThang(name: String!, timezone: String): Thang!
+    createThangCollection(name: String!): ThangCollection!
+    deleteThang(id: ID!): DeleteResult!
+    deleteBooking(id: ID!): DeleteResult!
+    visitThang(id: ID!): VisitLogEntry!
+    deleteThangCollection(id: ID!): DeleteResult!
+}
+
+type ChangeBooking {
+    add: Booking
+    remove: Booking
+    change: Booking
+}
+
+type ChangeThang {
+    add: Thang
+    remove: Thang
+    change: Thang
+}
+
+
+type Subscription {
+    bookingsChange(thang: ID!, input: ListBookingsInput): ChangeBooking!
+    myThangsChange: ChangeThang!
+    thangChange(thang: ID!): ChangeThang!
+}
+
+schema {
+    query: Query
+    mutation: Mutation
+    subscription: Subscription
+}

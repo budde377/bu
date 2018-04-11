@@ -2,3 +2,4 @@ flow-typed
 dist
 scripts
 __tests__
+coverage

@@ -11,6 +11,7 @@ import {
   deleteBooking,
   thangCollection,
   collectionThangs,
+  userBookings,
   createThangCollection,
   deleteThangCollection,
   collectionOwners,
@@ -26,131 +27,22 @@ import {
 import { makeExecutableSchema } from 'graphql-tools'
 import { userPicture } from '../util/communications'
 import moment from 'moment-timezone'
-import type { Thang } from '../db'
-
-const typeDefs = [
-  `
-type DateTime {
-  hour: Int
-  minute: Int
-  day: Int
-  month: Int
-  year: Int
-}
-
-type User {
-  id: ID!
-  name: String
-  nickname: String
-  givenName: String
-  familyName: String
-  displayName: String!
-  thangs: [Thang!]!
-  picture: String!
-  collections: [ThangCollection!]!
-  email: String
-  emailVerified: Boolean
-  timezone: String
-}
-type ThangCollection {
-  id: ID!
-  name: String!
-  thangs: [Thang!]!
-  owners: [User!]!
-}
-
-input DateTimeInput {
-  hour: Int
-  minute: Int
-  day: Int
-  month: Int
-  year: Int
-}
-
-input ListBookingsInput {
-  from: DateTimeInput
-  to: DateTimeInput
-}
-
-type Thang {
-  id: ID!
-  name: String!
-  owners: [User!]!
-  users: [User!]!
-  bookings(input: ListBookingsInput): [Booking!]!
-  collection: ThangCollection
-  timezone: String!
-}
-type Booking {
-  id: ID!
-  from: DateTime!
-  to: DateTime!
-  owner: User!
-  thang: Thang!
-}
-type Query {
-  thang(id: ID!): Thang
-  user(id: ID, email: String): User
-  me: User
-}
-
-type DeleteResult {
-  deleted: Int
-}
-
-type VisitLogEntry {
-  id: ID!
-  thang: Thang!
-  user: User!
-}
-
-type Mutation {
-  createBooking(thang: ID!, from: DateTimeInput!, to: DateTimeInput!): Booking!
-  createThang(name: String!, timezone: String): Thang!
-  createThangCollection(name: String!): ThangCollection!
-  deleteThang(id: ID!): DeleteResult!
-  deleteBooking(id: ID!): DeleteResult!
-  visitThang(id: ID!): VisitLogEntry!
-  deleteThangCollection(id: ID!): DeleteResult!
-}
-
-type ChangeBooking {
-  add: Booking
-  remove: Booking
-  change: Booking
-}
-
-type ChangeThang {
-  add: Thang
-  remove: Thang
-  change: Thang
-}
-
-
-type Subscription {
-  bookingsChange(thang: ID!, input: ListBookingsInput): ChangeBooking!
-  myThangsChange: ChangeThang!
-  thangChange(thang: ID!): ChangeThang!
-}
-
-schema {
-  query: Query
-  mutation: Mutation
-  subscription: Subscription
-}`
-]
+import type { Dt, Thang } from '../db'
+// $FlowFixMe Its OK flow... Good boy.
+import typeDefs from '../../graphql/schema.graphqls'
+import { dtToTimestamp } from '../util/dt'
 
 export type CustomErrorCode =
   'USER_NOT_LOGGED_IN'
   | 'USER_EMAIL_NOT_VERIFIED'
-  | 'REFERENCE_ERROR'
-  | 'INVALID_TIMEZONE'
-  | 'INVALID_NAME'
+  | 'NOT_FOUND'
+  | 'INVALID_INPUT'
   | 'INSUFFICIENT_PERMISSIONS'
+  | 'DUPLICATE'
 
-function checkEmail (f, defaultValue = null) {
+function checkEmail (f: (ctx: *, arg: *) => *, defaultValue = null) {
   return (ctx, arg, {currentUser}) => currentUser && currentUser.email === ctx.email
-    ? f(ctx)
+    ? f(ctx, arg)
     : defaultValue
 }
 
@@ -202,20 +94,56 @@ function checkEmailVerified (f) {
 async function validateThang (id): Promise<Thang> {
   const t = await thang(id)
   if (!t) {
-    throw new CustomError(`Thang with id ${id} not found`, 'REFERENCE_ERROR')
+    throw new CustomError(`Thang with id ${id} not found`, 'NOT_FOUND')
   }
   return t
 }
 
+function validateExpired (thang: Thang, from: Dt) {
+  const time = moment
+    .tz(thang.timezone)
+    .hour(from.hour)
+    .minute(from.minute)
+    .date(from.day)
+    .month(from.month - 1)
+    .year(from.year)
+  const now = moment().tz(thang.timezone)
+  if (now.isSameOrAfter(time)) {
+    throw new CustomError('Time provided has passed', 'INVALID_INPUT')
+  }
+}
+
+function validateDt (from: Dt, to: Dt): { fromTimestamp: number, toTimestamp: number } {
+  const fromTimestamp = dtToTimestamp(from)
+  if (typeof fromTimestamp !== 'number') {
+    throw new CustomError('Invalid from timestamp', 'INVALID_INPUT')
+  }
+  const toTimestamp = dtToTimestamp(to)
+  if (typeof toTimestamp !== 'number') {
+    throw new CustomError('Invalid to timestamp', 'INVALID_INPUT')
+  }
+  if (fromTimestamp >= toTimestamp) {
+    throw new CustomError('From must be before to', 'INVALID_INPUT')
+  }
+  return {fromTimestamp, toTimestamp}
+}
+
+async function validateOverlap (id: string, from: number, to: number): Promise<void> {
+  const bookings = await thangBookings(id, {from, to})
+  if (bookings.length) {
+    throw new CustomError('Booking is overlapping with existing booking', 'DUPLICATE')
+  }
+}
+
 function validateTimezone (tz) {
   if (!moment.tz.zone(tz)) {
-    throw new CustomError(`Invalid timezone: ${tz}`, 'INVALID_TIMEZONE')
+    throw new CustomError(`Invalid timezone: ${tz}`, 'INVALID_INPUT')
   }
 }
 
 function validateName (name) {
   if (!name) {
-    throw new CustomError(`Invalid name: "${name}"`, 'INVALID_NAME')
+    throw new CustomError(`Invalid name: "${name}"`, 'INVALID_INPUT')
   }
 }
 
@@ -223,7 +151,10 @@ const resolvers = {
   Subscription: {
     bookingsChange: {
       resolve,
-      subscribe: (ctx, {thang}) => thangBookingChanges(thang) // TODO use from and to
+      subscribe: (ctx, {thang, input}) => {
+        const out = input ? validateDt(input.from, input.to) : null
+        return thangBookingChanges(thang, out ? {from: out.fromTimestamp, to: out.toTimestamp} : null)
+      }
     },
     myThangsChange: {
       resolve,
@@ -280,6 +211,10 @@ const resolvers = {
     nickname: checkEmail(({nickname}) => nickname),
     givenName: checkEmail(({givenName}) => givenName),
     familyName: checkEmail(({familyName}) => familyName),
+    bookings: checkEmail(({email}, {input}) => {
+      const out = input ? validateDt(input.from, input.to) : null
+      return userBookings(email, out ? {from: out.fromTimestamp, to: out.toTimestamp} : null)
+    }, []),
     async picture (user) {
       return userPicture(user)
     },
@@ -293,8 +228,9 @@ const resolvers = {
         ? await thangCollection(collection)
         : null
     },
-    async bookings ({id}) {
-      return thangBookings(id) // TODO use to and from
+    async bookings ({id}, {input}) {
+      const out = input ? validateDt(input.from, input.to) : null
+      return thangBookings(id, out ? {from: out.fromTimestamp, to: out.toTimestamp} : null)
     },
     async owners ({id}) {
       return await thangOwners(id)
@@ -319,10 +255,15 @@ const resolvers = {
   Mutation: {
     createBooking:
       checkEmailVerified(async (ctx, args, {currentUser}) => {
-        await validateThang(args.thang)
+        const t = await validateThang(args.thang)
+        const {fromTimestamp, toTimestamp} = validateDt(args.from, args.to)
+        await validateExpired(t, args.from)
+        await validateOverlap(args.thang, fromTimestamp, toTimestamp)
         const id = await createBooking({
           from: args.from,
           to: args.to,
+          fromTime: new Date(fromTimestamp),
+          toTime: new Date(toTimestamp),
           owner: currentUser.email,
           thang: args.thang
         })

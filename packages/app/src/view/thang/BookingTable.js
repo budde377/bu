@@ -196,12 +196,12 @@ class BookingTableBody extends React.Component<{ me: ?string, days: number, offs
     this._unsubscribe = this.props.subscribe()
   }
 
-  componentWillReceiveProps ({bookings, days, offset}) {
+  componentWillReceiveProps ({bookings, days, offset, subscribe}) {
     if (!offset.isSame(this.props.offset, 'd') || days !== this.props.days) {
       if (this._unsubscribe) {
         this._unsubscribe()
       }
-      this._unsubscribe = this.props.subscribe()
+      this._unsubscribe = subscribe()
     }
 
     if (bookings === this.props.bookings) {
@@ -359,8 +359,8 @@ class BookingTable extends React.Component<BookingTableProps, { days: number, no
 
   render () {
     const now = this.state.now
-    const from = now.clone()
-    const to = now.clone().add(this.state.days, 'd')
+    const from = now.clone().hour(0).minute(0)
+    const to = from.clone().add(this.state.days, 'd')
     const variables = {from: momentToDt(from), to: momentToDt(to), thang: this.props.thang}
     return (
       <Table>
@@ -370,7 +370,7 @@ class BookingTable extends React.Component<BookingTableProps, { days: number, no
           <Row>
             <HeaderCell />
             {range(this.state.days).map(i => {
-              const dt = now.clone().add(i, 'd')
+              const dt = from.clone().add(i, 'd')
               return (
                 <HeaderCell key={i} today={dt.isSame(now, 'd')}>
                   <FormattedDate
@@ -416,7 +416,7 @@ class BookingTable extends React.Component<BookingTableProps, { days: number, no
                   })
                 }
                 now={now}
-                offset={now}
+                offset={from}
                 thang={this.props.thang}
                 bookings={data && data.thang ? data.thang.bookings : null} />
             )

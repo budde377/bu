@@ -42,7 +42,7 @@ type ThangCollection = {
   name: string,
   owners: string[]
 }
-type Dt = {
+export type Dt = {
   month: number,
   hour: number,
   day: number,
@@ -50,10 +50,12 @@ type Dt = {
   year: number
 }
 
-type Booking = {
+export type Booking = {
   id: string,
   from: Dt,
   to: Dt,
+  fromTime: Date,
+  toTime: Date,
   owner: string,
   thang: string
 }
@@ -117,10 +119,10 @@ export async function createThangCollection (args: WithoutId<ThangCollection>): 
   return id
 }
 
-export async function createBooking ({owner, from, to, thang}: WithoutId<Booking>): Promise<string> {
+export async function createBooking (args: WithoutId<Booking>): Promise<string> {
   const {generated_keys: [id]} = await r
     .table('bookings')
-    .insert({owner, from, to, thang, created: Date.now()})
+    .insert({...args, created: Date.now()})
     .run(await connectionP)
   return id
 }
@@ -217,10 +219,32 @@ export async function thangUsers (id: string): Promise<User[]> {
     .run(await connectionP)
 }
 
-export async function thangBookings (id: string): Promise<Booking[]> {
+export async function thangBookings (id: string, time: ?{ from: number, to: number } = null): Promise<Booking[]> {
+  const filter = time
+    ? r.row('thang').eq(id)
+      .and(
+        r.row('fromTime').during(new Date(time.from), new Date(time.to), {leftBound: 'closed', rightBound: 'open'})
+          .or(r.row('toTime').during(new Date(time.from), new Date(time.to), {leftBound: 'open', rightBound: 'closed'}))
+      )
+    : r.row('thang').eq(id)
   const res = await r
     .table('bookings')
-    .filter(r.row('thang').eq(id))
+    .filter(filter)
+    .run(await connectionP)
+  return res.toArray()
+}
+
+export async function userBookings (id: string, time: ?{ from: number, to: number } = null): Promise<Booking[]> {
+  const filter = time
+    ? r.row('owner').eq(id)
+      .and(
+        r.row('fromTime').during(new Date(time.from), new Date(time.to), {leftBound: 'closed', rightBound: 'open'})
+          .or(r.row('toTime').during(new Date(time.from), new Date(time.to), {leftBound: 'open', rightBound: 'closed'}))
+      )
+    : r.row('owner').eq(id)
+  const res = await r
+    .table('bookings')
+    .filter(filter)
     .run(await connectionP)
   return res.toArray()
 }
@@ -271,10 +295,17 @@ async function* feedGenerator (feed) {
   }
 }
 
-export async function thangBookingChanges (thang: string): Promise<AsyncIterator<{ type: 'add' | 'remove' | 'update', booking: Booking }>> {
+export async function thangBookingChanges (thang: string, time: ?{ from: number, to: number } = null): Promise<AsyncIterator<{ type: 'add' | 'remove' | 'update', booking: Booking }>> {
+  const filter = time
+    ? r.row('thang').eq(thang)
+      .and(
+        r.row('fromTime').during(new Date(time.from), new Date(time.to), {leftBound: 'closed', rightBound: 'open'})
+          .or(r.row('toTime').during(new Date(time.from), new Date(time.to), {leftBound: 'open', rightBound: 'closed'}))
+      )
+    : r.row('thang').eq(thang)
   const res = await r
     .table('bookings')
-    .filter(r.row('thang').eq(thang))
+    .filter(filter)
     .changes({includeTypes: true})
     .run(await connectionP)
   return feedGenerator(res)

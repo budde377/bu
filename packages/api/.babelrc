@@ -1,4 +1,14 @@
 {
+  "plugins": [
+    [
+      "babel-plugin-inline-import",
+      {
+        "extensions": [
+          ".graphqls"
+        ]
+      }
+    ]
+  ],
   "presets": [
     "flow",
     "stage-0",
