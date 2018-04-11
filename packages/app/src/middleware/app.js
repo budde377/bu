@@ -12,6 +12,7 @@ import fetch from 'node-fetch'
 import config from 'config'
 import type { Middleware } from 'koa'
 import { ServerStyleSheet } from 'styled-components'
+import {Helmet} from 'react-helmet'
 
 function gqlClient (accessToken: ?string) {
   return new ApolloClient({
@@ -57,8 +58,9 @@ const m: () => Middleware = () =>
       return ctx.redirect(context.url)
     }
     const initialState = client.extract()
+    const staticHelmet = Helmet.renderStatic()
     const html = (
-      <Html styles={sheet.getStyleElement()} content={content} config={conf} apolloState={initialState} version={config.version} />
+      <Html helmet={staticHelmet} styles={sheet.getStyleElement()} content={content} config={conf} apolloState={initialState} version={config.version} />
     )
     ctx.body = `<!doctype html>\n${ReactDOMServer.renderToStaticMarkup(html)}`
   }

@@ -13,6 +13,7 @@ import Logo from './Logo'
 import PublicApp from './PublicApp'
 import { AvatarContainer, BaseContainer, LogoLink, Menu, NotAvatarContainer } from './styled/Menu'
 import { Avatar } from './styled/User'
+import { Helmet } from 'react-helmet'
 
 addLocaleData(englishLocaleData)
 
@@ -49,6 +50,9 @@ const LoggedInMenu = ({user}: { user: User }) => (
 
 const LoggedInApp = ({user}: { user: User }) => (
   <BaseContainer>
+    <Helmet>
+      <title>Thang</title>
+    </Helmet>
     <LoggedInMenu user={user} />
     <Switch>
       <Route path={'/thangs'} component={Thang} />

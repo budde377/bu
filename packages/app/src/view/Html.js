@@ -6,10 +6,12 @@ export type Config = {
   accessToken: ?string
 }
 
-export default ({styles, content, config, apolloState, version}: { styles: Array<*>, apolloState: *, content: string, config: Config, version: string }) => (
-  <html>
+export default ({helmet, styles, content, config, apolloState, version}: { helmet: *, styles: Array<*>, apolloState: *, content: string, config: Config, version: string }) => (
+  <html {...helmet.htmlAttributes.toComponent()}>
     <head>
-      <title>Thang.io</title>
+      {helmet.title.toComponent()}
+      {helmet.meta.toComponent()}
+      {helmet.link.toComponent()}
       <link
         href='https://fonts.googleapis.com/css?family=Fira+Sans:300,300i|Lato:400,700|Open+Sans:400,400i,700'
         rel='stylesheet' />
@@ -41,7 +43,7 @@ export default ({styles, content, config, apolloState, version}: { styles: Array
       <script src={`/main.js?v=${version}`} async defer />
       {styles}
     </head>
-    <body>
+    <body {...helmet.bodyAttributes.toComponent()}>
       <div id={'content'} dangerouslySetInnerHTML={{__html: content}} />
       <div id={'modal-root'} />
     </body>

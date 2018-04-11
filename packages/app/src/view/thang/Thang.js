@@ -11,6 +11,7 @@ import OnMount from '../OnMount'
 import Logo from '../Logo'
 import { H1 } from '../styled/Header'
 import { Container, Top } from '../styled/Thang'
+import { Helmet } from 'react-helmet'
 
 const GET_THANG = gql`
     query getThangUsers($id: ID!){
@@ -93,6 +94,11 @@ class BaseThang extends React.Component<*> {
             })
             return [
               <Top key={'header'}>
+                <Helmet>
+                  <title>
+                    {data.thang.name}
+                  </title>
+                </Helmet>
                 <H1>
                   {data.thang.name}
                   <OnMount f={subscribe} />
