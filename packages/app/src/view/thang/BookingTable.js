@@ -362,7 +362,7 @@ class BookingTable extends React.Component<BookingTableProps, { days: number, no
   render () {
     const now = this.state.now
     const from = now.clone().hour(0).minute(0)
-    const to = from.clone().add(Math.min(1, this.state.days), 'd')
+    const to = from.clone().add(Math.max(1, this.state.days), 'd')
     const variables = {from: momentToDt(from), to: momentToDt(to), thang: this.props.thang}
     return (
       <Table>
