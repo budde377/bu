@@ -7,7 +7,7 @@ import { Mutation, Query } from 'react-apollo'
 import gql from 'graphql-tag'
 import {
   Body as TBaddy, Cell, FauxCheck, Header, HeaderCell, Row, Table, TableScroll, Time,
-  TimeCell
+  TimeCell, InterCell
 } from '../styled/BookinTable'
 import { Avatar } from '../styled/User'
 
@@ -276,12 +276,14 @@ class BookingTableBody extends React.Component<{ me: ?string, days: number, offs
                                     key={j} data-cell-index={j} data-row-index={i} me={this.props.me}
                                     owner={current && current.owner.id}
                                     percent={(this.props.now.isSame(n, 'h') ? this.props.now.minute() / 60 : (Math.max(0, Math.min(1, this.props.now.diff(n, 'h')))))}>
-                                    {
-                                      current
-                                        ? (
-                                          <Avatar picture={current.owner.picture} />)
-                                        : (<FauxCheck />)
-                                    }
+                                    <InterCell>
+                                      {
+                                        current
+                                          ? (
+                                            <Avatar picture={current.owner.picture} />)
+                                          : (<FauxCheck />)
+                                      }
+                                    </InterCell>
                                   </Cell>
                                 )
                               })}
@@ -352,15 +354,15 @@ class Clock extends React.Component<{ tick: (t: moment) => mixed, tz: string }> 
 }
 
 class BookingTable extends React.Component<BookingTableProps, { days: number, now: moment }> {
-  state = {days: 0, now: moment.tz(this.props.timezone)}
+  state = {days: 1, now: moment.tz(this.props.timezone)}
 
-  _resize = (p: number) => this.setState({days: Math.floor(p / 250)})
+  _resize = (p: number) => this.setState({days: Math.ceil(p / 250)})
   _updateTime = (now: moment) => this.setState({now})
 
   render () {
     const now = this.state.now
     const from = now.clone().hour(0).minute(0)
-    const to = from.clone().add(this.state.days, 'd')
+    const to = from.clone().add(Math.min(1, this.state.days), 'd')
     const variables = {from: momentToDt(from), to: momentToDt(to), thang: this.props.thang}
     return (
       <Table>

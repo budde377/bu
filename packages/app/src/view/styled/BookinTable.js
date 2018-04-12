@@ -6,7 +6,7 @@ import { Avatar } from './User'
 export const Table = styled.div`
   overflow: hidden;
   display: flex;
-  
+
   flex-direction: column;
   align-content: stretch;
 `
@@ -57,7 +57,7 @@ export const HeaderTable = styled.div`
     flex-grow: 0;
     flex-shrink: 0;
   }
-  
+
 `
 
 export const TableScroll = styled.div`
@@ -127,7 +127,6 @@ function backgroundColor ({percent, owner, me}) {
 
 export const Cell = styled.div`
   flex-grow: 1;
-  border: 0.01em solid #fff;
   background-color: ${backgroundColor};
   flex-shrink: 1;
   text-align: center;
@@ -144,7 +143,7 @@ export const Cell = styled.div`
     left: 0;
     right: 0;
     content: '';
-    height: ${({percent}) => (percent * 3.02)}em;
+    height: ${({percent}) => (percent * 3)}em;
   }
   ${Avatar} {
     height: 2em;
@@ -167,6 +166,15 @@ export const Cell = styled.div`
     ${({percent}) => percent ? '' : 'border-color: #b7b7b7;'}
   }
 
+`
+
+export const InterCell = styled.div`
+  border: 0.01em solid #fff;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
 `
 
 export const Body = styled.div`
