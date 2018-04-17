@@ -376,6 +376,7 @@ class BookingTable extends React.Component<BookingTableProps, { days: number, no
               return (
                 <HeaderCell key={i} today={dt.isSame(now, 'd')}>
                   <FormattedDate
+                    timeZone={this.props.timezone}
                     weekday={'short'}
                     month={'long'}
                     year={from.year() !== to.year() ? 'numeric' : undefined}
