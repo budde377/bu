@@ -11,9 +11,17 @@ import { hot } from 'react-hot-loader'
 import NotFoundApp from './NotFoundApp'
 import Logo from './Logo'
 import PublicApp from './PublicApp'
-import { AvatarContainer, BaseContainer, LogoLink, Menu, NotAvatarContainer } from './styled/Menu'
+import {
+  BaseContainer,
+  LogoLink,
+  Menu,
+  MenuContainer,
+  ContentContainer,
+  AvatarContainer
+} from './styled/Menu'
 import { Avatar } from './styled/User'
 import { Helmet } from 'react-helmet'
+import ThangSelectMenu from './ThangSelectMenu'
 
 addLocaleData(englishLocaleData)
 
@@ -35,30 +43,29 @@ type User = {
   emailVerified: boolean
 }
 
-const LoggedInMenu = ({user}: { user: User }) => (
-  <Menu>
-    <NotAvatarContainer>
-      <LogoLink to={'/'}>
-        <img src={require('../../images/logo_named.svg')} />
-      </LogoLink>
-    </NotAvatarContainer>
-    <AvatarContainer backgroundImage={user.picture}>
-      <Avatar picture={user.picture} />
-    </AvatarContainer>
-  </Menu>
-)
-
 const LoggedInApp = ({user}: { user: User }) => (
   <BaseContainer>
     <Helmet>
       <title>Thang</title>
     </Helmet>
-    <LoggedInMenu user={user} />
-    <Switch>
-      <Route path={'/thangs'} component={Thang} />
-      <Redirect from={'/'} to={'/thangs'} exact />
-      <Route component={NotFoundApp} />
-    </Switch>
+    <ContentContainer>
+      <Menu>
+        <LogoLink to={'/'}>
+          <img src={require('../../images/logo_named.svg')} />
+        </LogoLink>
+      </Menu>
+      <Switch>
+        <Route path={'/thangs'} component={Thang} />
+        <Redirect from={'/'} to={'/thangs'} exact />
+        <Route component={NotFoundApp} />
+      </Switch>
+    </ContentContainer>
+    <MenuContainer>
+      <AvatarContainer backgroundImage={user.picture}>
+        <Avatar picture={user.picture} />
+      </AvatarContainer>
+      <ThangSelectMenu />
+    </MenuContainer>
   </BaseContainer>
 )
 
@@ -69,7 +76,7 @@ const App = () => (
         if (loading) {
           return <Logo loading /> // TODO fix humongous loading
         }
-        const me: ?User = data.me
+        const me: ?User = (data || {}).me
         if (!me) {
           return (
             <PublicApp />

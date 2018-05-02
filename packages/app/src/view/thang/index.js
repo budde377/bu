@@ -4,7 +4,6 @@ import React from 'react'
 import { Route, Switch, withRouter } from 'react-router'
 import Base from './Base'
 import Thang from './Thang'
-import ThangSelectMenu from './ThangSelectMenu'
 import { Content, SecondaryContent } from '../styled/Menu'
 
 export default withRouter(({match}: *) => (
@@ -15,6 +14,5 @@ export default withRouter(({match}: *) => (
         <Route path={`${match.path}/:id`} component={Thang} />
       </Switch>
     </SecondaryContent>
-    <ThangSelectMenu />
   </Content>
 ))

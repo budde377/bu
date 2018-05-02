@@ -73,7 +73,8 @@ class BaseThang extends React.Component<*> {
                 null // TODO error handing
               )
             }
-            if (!data.thang) {
+            const thang = (data || {}).thang
+            if (!thang) {
               return (
                 <H1>
                   <FormattedMessage id={'thangView.notFound'} />
@@ -96,16 +97,16 @@ class BaseThang extends React.Component<*> {
               <Top key={'header'}>
                 <Helmet>
                   <title>
-                    {data.thang.name}
+                    {thang.name}
                   </title>
                 </Helmet>
                 <H1>
-                  {data.thang.name}
+                  {thang.name}
                   <OnMount f={subscribe} />
-                  <LogVisit thang={data.thang.id} />
+                  <LogVisit thang={thang.id} />
                 </H1>
               </Top>,
-              <BookingTable thang={data.thang.id} timezone={data.thang.timezone} key={'table'} />
+              <BookingTable thang={thang.id} timezone={thang.timezone} key={'table'} />
             ]
           }}
         </Query>

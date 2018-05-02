@@ -1,5 +1,5 @@
-// flow-typed signature: 332815cc1293e021539dcb4e2f878dc0
-// flow-typed version: d6e0ca5983/react-apollo_v2.x.x/flow_>=v0.58.x
+// flow-typed signature: 65ed5e51ccbc9036e1639b644476f680
+// flow-typed version: f30cad1aa6/react-apollo_v2.x.x/flow_>=v0.58.x
 
 // @flow
 import type {
@@ -24,6 +24,14 @@ declare module 'react-apollo' {
 
   declare export interface ProviderProps {
     client: ApolloClient;
+  }
+
+  declare export interface ApolloConsumerProps {
+    children: (client: ApolloClient) => React$Node;
+  }
+
+  declare export class ApolloConsumer extends React$Component<ApolloConsumerProps> {
+    render(): React$Node;
   }
 
   declare export class ApolloProvider extends React$Component<ProviderProps> {

@@ -6,7 +6,7 @@ export type Config = {
   accessToken: ?string
 }
 
-export default ({helmet, styles, content, config, apolloState, version}: { helmet: *, styles: Array<*>, apolloState: *, content: string, config: Config, version: string }) => (
+export default ({helmet, styles, content, config, apolloState, version}: { helmet: *, styles: *, apolloState: *, content: string, config: Config, version: string }) => (
   <html {...helmet.htmlAttributes.toComponent()}>
     <head>
       {helmet.title.toComponent()}

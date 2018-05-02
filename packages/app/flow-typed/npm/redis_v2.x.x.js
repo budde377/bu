@@ -1,5 +1,5 @@
-// flow-typed signature: 9f7b591bf403449e25c043c8e6063754
-// flow-typed version: ab1da655b9/redis_v2.x.x/flow_>=v0.34.x
+// flow-typed signature: e8c17d9b50ca24293a9bd00a8aa54f9e
+// flow-typed version: a80cb215a2/redis_v2.x.x/flow_>=v0.34.x
 
 /* This module definition is by no means complete. A lot of methods of the RedisClient class are missing */
 
@@ -204,6 +204,15 @@ declare module "redis" {
     duplicate: () => RedisClient;
     end: (flush: boolean) => void;
     quit: () => void;
+    keys: (
+      pattern: string,
+      callback?: (error: ?Error, keys: string[]) => void
+    ) => void;
+    expire: (
+      key: string,
+      timeout: number,
+      callback?: (error: ?Error, timeoutWasSet: number) => void
+    ) => void;
   }
 
   declare class RedisClientPromisified extends RedisClient {
@@ -255,6 +264,9 @@ declare module "redis" {
     duplicateAsync: () => Promise<RedisClientPromisified>;
     endAsync: (flush: boolean) => Promise<void>;
     quitAsync: () => Promise<void>;
+    keysAsync: (pattern: string) => Promise<string[]>;
+    expireAsync: (key: string, timeout: number) => Promise<number>;
+    setexAsync: (key: string, timeout: number, value: string) => Promise<string>;
   }
 
   declare type CreateOptions = {

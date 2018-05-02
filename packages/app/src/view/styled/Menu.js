@@ -22,6 +22,20 @@ export const BaseContainer = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
+  display: flex;
+  flex-direction: row;
+`
+
+export const ContentContainer = styled.div`
+  width: calc(100% - 20rem);
+  flex-grow: 1;
+  flex-shrink: 1;
+`
+
+export const MenuContainer = styled.div`
+  flex-grow: 0;
+  flex-shrink: 0;
+  background-color: #ededed;
 `
 
 export const Menu = styled.nav`
@@ -32,14 +46,9 @@ export const Menu = styled.nav`
   align-content: stretch;
 `
 
-export const NotAvatarContainer = styled.div`
-  flex-grow: 1;
-  flex-shrink: 1;
-`
-
 export const AvatarContainer = styled.div`
   width: 20rem;
-  background-color: #ededed;
+  height: 5rem;
   position: relative;
   overflow: hidden;
   flex-grow: 0;

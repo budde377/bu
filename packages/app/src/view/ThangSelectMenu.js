@@ -3,14 +3,14 @@ import gql from 'graphql-tag'
 import React from 'react'
 import { FormattedMessage } from 'react-intl'
 import { Query } from 'react-apollo'
-import { MenuLink, Empty, Item, Items, SecondaryMenu } from '../styled/Menu'
-import { H1 } from '../styled/Header'
-import { Button } from '../styled/Button'
-import { Add } from '../styled/Icon'
-import Modal from '../Modal'
+import { MenuLink, Empty, Item, Items, SecondaryMenu } from './styled/Menu'
+import { H1 } from './styled/Header'
+import { Button } from './styled/Button'
+import { Add } from './styled/Icon'
+import Modal from './Modal'
 import type { ContextRouter } from 'react-router'
 
-import CreateThang from './CreateThang'
+import CreateThang from './thang/CreateThang'
 import { withRouter } from 'react-router'
 
 const GET_THANGS = gql`
@@ -76,11 +76,12 @@ class ListThangs extends React.Component<{}> {
     return (
       <Query query={GET_THANGS}>
         {({subscribeToMore, loading, error, data}) => {
-          if (loading || !data.me) {
+          const me = (data || {}).me
+          if (loading || !me) {
             return null
           }
           return (
-            <ThangList thangs={data.me.thangs} subscribe={() => {
+            <ThangList thangs={me.thangs} subscribe={() => {
               subscribeToMore({
                 document: SUBSCRIBE_THANGS,
                 updateQuery: (prev, {subscriptionData}) => {
@@ -109,7 +110,6 @@ class ListThangs extends React.Component<{}> {
 
 class AddThang extends React.Component<ContextRouter, { open: boolean, sesh: number }> {
   state = {open: false, sesh: 0}
-
   _onCreate = (id: string) => {
     this._close()
     this.props.history.push(`/thangs/${id}`)
