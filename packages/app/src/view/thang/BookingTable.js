@@ -196,8 +196,8 @@ class BookingTableBody extends React.Component<{ me: ?string, days: number, offs
     this._unsubscribe = this.props.subscribe()
   }
 
-  componentWillReceiveProps ({bookings, days, offset, subscribe}) {
-    if (!offset.isSame(this.props.offset, 'd') || days !== this.props.days) {
+  componentWillReceiveProps ({bookings, days, offset, subscribe, thang}) {
+    if (!offset.isSame(this.props.offset, 'd') || days !== this.props.days || thang !== this.props.thang) {
       if (this._unsubscribe) {
         this._unsubscribe()
       }
