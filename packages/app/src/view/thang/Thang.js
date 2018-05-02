@@ -58,8 +58,8 @@ const SUBSCRIBE_THANG = gql`
 class BaseThang extends React.Component<*> {
   render () {
     return (
-      <Container key={this.props.match.params.id}>
-        <Query query={GET_THANG} variables={{id: this.props.match.params.id}} ssr={false}>
+      <Container>
+        <Query query={GET_THANG} variables={{id: this.props.match.params.id}}>
           {({loading, error, data, subscribeToMore}) => {
             if (loading) {
               return (

@@ -18,7 +18,6 @@ function customFetch (uri, options) {
 }
 
 const httpLink = createHttpLink({
-  // $FlowFixMe: This is ok
   uri: `${config.api.http}/graphql`,
   fetch: customFetch
 })

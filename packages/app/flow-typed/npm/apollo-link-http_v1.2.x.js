@@ -1,5 +1,5 @@
-// flow-typed signature: a62243e7e859cc9a0e3d89a89f1d2508
-// flow-typed version: 8fa3fe4d33/apollo-link-http_v1.2.x/flow_>=v0.56.x
+// flow-typed signature: 4ab386f3c584d85b158908552aadde04
+// flow-typed version: 9b6155aff6/apollo-link-http_v1.2.x/flow_>=v0.56.x
 
 // @flow
 
@@ -59,7 +59,7 @@ declare module "apollo-link-http" {
     (operation: Operation): string;
   }
 
-  declare export interface FetchOptions {
+  declare export type FetchOptions = {
     uri?: string | UriFunction;
     fetch?: any;
     includeExtensions?: boolean;

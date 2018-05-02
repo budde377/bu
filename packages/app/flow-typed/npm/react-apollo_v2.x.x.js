@@ -1,9 +1,11 @@
-// flow-typed signature: ae192ebb602cf127f44a1dcc86227a43
-// flow-typed version: ec30953211/react-apollo_v2.x.x/flow_>=v0.50.x
+// flow-typed signature: 332815cc1293e021539dcb4e2f878dc0
+// flow-typed version: d6e0ca5983/react-apollo_v2.x.x/flow_>=v0.58.x
 
 // @flow
 import type {
   ApolloClient,
+  FetchResult,
+  DataProxy,
   MutationQueryReducersMap,
   ApolloQueryResult,
   ApolloError,
@@ -85,7 +87,7 @@ declare module 'react-apollo' {
   };
 
   declare export interface GraphqlQueryControls {
-    error?: ApolloError;
+    error?: ApolloError | any; // Added optional `any` to satisfy Flow < 0.62
     networkStatus: NetworkStatus;
     loading: boolean;
     variables: Object;
@@ -133,23 +135,21 @@ declare module 'react-apollo' {
     alias?: string;
   }
 
-  // Third argument of TMergedProps should be TVariables, but generics order
-  // is preserved for backward compatibility.
   declare export interface OperationComponent<
     TResult: Object = {},
     TOwnProps: Object = {},
-    TMergedProps: Object = ChildProps<TOwnProps, TResult, {}>,
-    TVariables: Object = {}
+    TVariables: Object = {},
+    TMergedProps: Object = ChildProps<TOwnProps, TResult, TVariables>
   > {
     (
       component: React$ComponentType<TMergedProps>
     ): React$ComponentType<TOwnProps>;
   }
 
-  declare export function graphql<TResult, TProps, TChildProps, TVariables>(
+  declare export function graphql<TResult, TProps, TVariables, TChildProps>(
     document: DocumentNode,
     operationOptions?: OperationOption<TResult, TProps, TChildProps, TVariables>
-  ): OperationComponent<TResult, TProps, TChildProps, TVariables>;
+  ): OperationComponent<TResult, TProps, TVariables, TChildProps>;
 
   declare type WithApolloOptions = {
     withRef?: boolean,
@@ -205,4 +205,57 @@ declare module 'react-apollo' {
   ): Promise<string>;
 
   declare export function cleanupApolloState(apolloState: any): void;
+
+  declare type QueryRenderPropFunction<TData, TVariables> = ({
+    data?: TData,
+    loading: boolean,
+    error: ?ApolloError,
+    variables: TVariables,
+    networkStatus: NetworkStatus,
+    refetch: (variables?: TVariables) => Promise<mixed>,
+    fetchMore: ({query?: DocumentNode, variables?: TVariables, updateQuery: Function}) => Promise<mixed>,
+    load: () => void,
+    startPolling: (interval: number) => void,
+    stopPolling: (interval: number) => void,
+    subscribeToMore: (options: {document?: DocumentNode, variables?: TVariables, updateQuery?: Function, onError?: Function}) => () => void,
+    updateQuery: (previousResult: TData, options?: {variables: TVariables}) => TData,
+    client: ApolloClient
+  }) => React$Node
+
+  declare export class Query<TData> extends React$Component<{
+    query: DocumentNode,
+    children: QueryRenderPropFunction<TData, {[string]: any}>,
+    variables?: {[string]: any},
+    pollInterval?: number,
+    notifyOnNetworkStatusChange?: boolean,
+    fetchPolicy?: FetchPolicy,
+    errorPolicty?: ErrorPolicy,
+    ssr?: boolean,
+    displayName?: string,
+    delay?: boolean,
+    context?: {[string]: any}
+  }> {}
+
+  declare type MutateFunction = (options: {
+    variables?: {[string]: any},
+    optimisticResponse?: Object,
+    refetchQueries?: (mutationResult: FetchResult) => Array<{query: DocumentNode, variables: {[string]: any}}>,
+    update?: (cache: DataProxy, mutationResult: FetchResult) => any
+  }) => Promise<*>
+
+  declare type MutationRenderPropFunction<TData> = (mutate: MutateFunction, result: {loading: boolean, error: ?ApolloError, data: TData}) => React$Node
+    declare export class Mutation<TData> extends React$Component<{
+    mutation: DocumentNode,
+    children: MutationRenderPropFunction<TData>,
+    variables?: {[string]: any},
+    update?: (cache: DataProxy, mutationResult: FetchResult) => any,
+    ignoreResults?: boolean,
+    optimisticResponse?: Object,
+    refetchQueries?: (mutationResult: FetchResult) => Array<{query: DocumentNode, variables: {[string]: any}}>,
+    onCompleted?: (data: TData) => void,
+    onError?: (error: ApolloError) => void,
+    context?: {[string]: any}
+  }> {}
+
+
 }
