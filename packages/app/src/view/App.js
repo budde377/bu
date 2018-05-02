@@ -47,7 +47,7 @@ type User = {
 
 class SecondaryMenu extends React.Component<{ user: User }, { open: boolean }> {
   state = {
-    open: true
+    open: false
   }
   _toggleUserMenu = () => this.setState(({open}) => ({open: !open}))
 
