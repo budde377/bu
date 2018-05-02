@@ -28,6 +28,17 @@ const themeColors = {
     hover: {
       background: '#51ccd0'
     }
+  },
+  red: {
+    std: {
+      background: '#ba513c',
+      color: '#fff',
+      border: '#ba3236',
+      fill: '#fff'
+    },
+    hover: {
+      background: '#ba501a'
+    }
   }
 }
 
@@ -36,7 +47,6 @@ export const Button = styled.button`
   position: relative;
   color: ${props => themeColors[props.color || 'grey'].std.color};
   font-family: 'Lato', sans-serif;
-  padding: 0 2em;
   font-weight: 700;
   border-radius: 0.2em;
   border: 0.1em solid ${props => themeColors[props.color || 'grey'].std.border};
@@ -48,6 +58,7 @@ export const Button = styled.button`
   width: ${props => props.fluid ? '100%' : 'auto'};
   font-size: inherit;
   transition: 0.1s,0.1s background-color,color;
+  text-align: center;
   text-decoration: none;
   &:focus {
     background-color: ${props => ({...themeColors[props.color || 'grey'].std, ...(themeColors[props.color || 'grey'].focus || {})}).background};
@@ -70,6 +81,9 @@ export const Button = styled.button`
   
   ${Icon} svg {
     fill: ${props => themeColors[props.color || 'grey'].std.fill};
+  }
+  > span {
+    padding: 0 2em;
   }
 `
 

@@ -4,7 +4,7 @@ import { Query } from 'react-apollo'
 import gql from 'graphql-tag'
 import { Redirect, Route, Switch } from 'react-router'
 import Thang from './thang'
-import { addLocaleData, IntlProvider } from 'react-intl'
+import { addLocaleData, FormattedMessage, IntlProvider } from 'react-intl'
 import englishLocaleData from 'react-intl/locale-data/en'
 import messages from '../../locale/en.json'
 import { hot } from 'react-hot-loader'
@@ -17,11 +17,13 @@ import {
   Menu,
   MenuContainer,
   ContentContainer,
-  AvatarContainer
+  AvatarContainer, SecondaryMenuOverlay
 } from './styled/Menu'
 import { Avatar } from './styled/User'
 import { Helmet } from 'react-helmet'
 import ThangSelectMenu from './ThangSelectMenu'
+import { A as Button } from './styled/Button'
+import { LogOut } from './styled/Icon'
 
 addLocaleData(englishLocaleData)
 
@@ -43,6 +45,30 @@ type User = {
   emailVerified: boolean
 }
 
+class SecondaryMenu extends React.Component<{ user: User }, { open: boolean }> {
+  state = {
+    open: true
+  }
+  _toggleUserMenu = () => this.setState(({open}) => ({open: !open}))
+
+  render () {
+    return (
+      <MenuContainer>
+        <AvatarContainer backgroundImage={this.props.user.picture} onClick={this._toggleUserMenu}>
+          <Avatar picture={this.props.user.picture} />
+        </AvatarContainer>
+        <ThangSelectMenu />
+        <SecondaryMenuOverlay open={this.state.open}>
+          <Button href={'/auth/logout'} fluid color={'red'}>
+            <LogOut />
+            <FormattedMessage id={'logout'} />
+          </Button>
+        </SecondaryMenuOverlay>
+      </MenuContainer>
+    )
+  }
+}
+
 const LoggedInApp = ({user}: { user: User }) => (
   <BaseContainer>
     <Helmet>
@@ -60,12 +86,7 @@ const LoggedInApp = ({user}: { user: User }) => (
         <Route component={NotFoundApp} />
       </Switch>
     </ContentContainer>
-    <MenuContainer>
-      <AvatarContainer backgroundImage={user.picture}>
-        <Avatar picture={user.picture} />
-      </AvatarContainer>
-      <ThangSelectMenu />
-    </MenuContainer>
+    <SecondaryMenu user={user} />
   </BaseContainer>
 )
 

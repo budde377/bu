@@ -4,7 +4,7 @@ import styled from 'styled-components'
 import { Link, NavLink } from 'react-router-dom'
 import { Avatar } from './User'
 import { H1 } from './Header'
-
+import { A } from './Button'
 export const LogoLink = styled(Link)`
   height: 2rem;
   padding: 1.5rem 2rem;
@@ -32,7 +32,25 @@ export const ContentContainer = styled.div`
   flex-shrink: 1;
 `
 
+export const SecondaryMenuOverlay = styled.div`
+  width: 20rem;
+  top: 5rem;
+  bottom: 0;
+  right: -${({open}) => open ? 0 : 20}rem;
+  position: absolute;
+  transition: 400ms right ease;
+  background: #6ab7c1;
+  > ${A} {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+`
+
 export const MenuContainer = styled.div`
+  position: relative;
+  overflow: hidden;
   flex-grow: 0;
   flex-shrink: 0;
   background-color: #ededed;
@@ -49,6 +67,7 @@ export const Menu = styled.nav`
 export const AvatarContainer = styled.div`
   width: 20rem;
   height: 5rem;
+  cursor: pointer;
   position: relative;
   overflow: hidden;
   flex-grow: 0;

@@ -5,8 +5,8 @@ import gql from 'graphql-tag'
 import { Mutation } from 'react-apollo'
 import { injectIntl, FormattedMessage } from 'react-intl'
 import type { InjectIntlProvidedProps } from 'react-intl'
-import { Hint, Form, Input, Label } from '../styled/Form'
-import { Button } from '../styled/Button'
+import { Hint, Form, Input, Label } from './styled/Form'
+import { Button } from './styled/Button'
 
 const CREATE_THANG = gql`
     mutation createThang($name: String!) {
@@ -49,7 +49,7 @@ class CreateThang extends React.Component<{ onCreate: (id: string) => mixed } & 
                 placeholder={this.props.intl.formatMessage({id: 'name'})} />
             </Label>
             <Button type={'submit'}>
-              <FormattedMessage id={'create'} />
+              <FormattedMessage id={'createThang'} />
             </Button>
           </Form>
         )}

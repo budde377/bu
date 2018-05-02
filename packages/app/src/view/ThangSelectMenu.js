@@ -10,7 +10,7 @@ import { Add } from './styled/Icon'
 import Modal from './Modal'
 import type { ContextRouter } from 'react-router'
 
-import CreateThang from './thang/CreateThang'
+import CreateThang from './CreateThang'
 import { withRouter } from 'react-router'
 
 const GET_THANGS = gql`
