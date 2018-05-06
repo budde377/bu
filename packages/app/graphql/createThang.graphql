@@ -1,0 +1,6 @@
+mutation createThang($name: String!) {
+    createThang (name: $name) {
+        name
+        id
+    }
+}

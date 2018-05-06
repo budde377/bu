@@ -1,25 +1,17 @@
 // @flow
 
 import React from 'react'
-import gql from 'graphql-tag'
-import { Mutation } from 'react-apollo'
+import { Mutation, type MutationFunction } from 'react-apollo'
 import OnMount from './OnMount'
-
-const LOG_VISIT = gql`
-    mutation visit($id: ID!) {
-        visitThang (id: $id) {
-            thang {
-                id
-            }
-        }
-    }
-`
+import LOG_VISIT from '../../graphql/logVisit.graphql'
+import type { logVisitMutationVariables } from '../../graphql'
 
 class LogVisit extends React.Component<{ thang: string }> {
   render () {
     return (
       <Mutation mutation={LOG_VISIT}>
-        {logVisit => (<OnMount f={() => logVisit({variables: {id: this.props.thang}})} />)}
+        {(logVisit: MutationFunction<logVisitMutationVariables>) => (
+          <OnMount f={() => logVisit({variables: {id: this.props.thang}})} />)}
       </Mutation>
     )
   }

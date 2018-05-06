@@ -1,0 +1,20 @@
+subscription subscribeThangUsers($id: ID!) {
+    thangChange(thang: $id) {
+        change {
+            id
+            name
+            timezone
+            owners {
+                displayName
+                id
+                picture
+            }
+            users {
+                displayName
+                id
+                picture
+            }
+        }
+    }
+}
+

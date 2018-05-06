@@ -1,0 +1,9 @@
+query getThangs {
+    me {
+        id
+        thangs {
+            id
+            name
+        }
+    }
+}

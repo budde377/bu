@@ -1,0 +1,5 @@
+mutation createBooking ($thang: ID!, $from: DateTimeInput!, $to: DateTimeInput!){
+    createBooking(thang: $thang, from: $from, to: $to) {
+        id
+    }
+}

@@ -1,0 +1,7 @@
+mutation logVisit($id: ID!) {
+    visitThang (id: $id) {
+        thang {
+            id
+        }
+    }
+}

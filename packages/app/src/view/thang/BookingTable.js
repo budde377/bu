@@ -3,13 +3,23 @@
 import React from 'react'
 import { FormattedDate } from 'react-intl'
 import moment from 'moment-timezone'
-import { Mutation, Query } from 'react-apollo'
-import gql from 'graphql-tag'
+import { Mutation, Query, type QueryRenderProps, type MutationFunction } from 'react-apollo'
+import CREATE_BOOKING from '../../../graphql/createBooking.graphql'
+import DELETE_BOOKING from '../../../graphql/deleteBooking.graphql'
+import GET_BOOKINGS from '../../../graphql/getBookings.graphql'
+import SUBSCRIBE_BOOKINGS from '../../../graphql/subscribeBookings.graphql'
+
 import {
   Body as TBaddy, Cell, FauxCheck, Header, HeaderCell, Row, Table, TableScroll, Time,
   TimeCell, InterCell
 } from '../styled/BookinTable'
 import { Avatar } from '../styled/User'
+import type {
+  createBookingMutationVariables,
+  deleteBookingMutationVariables,
+  getBookingsQuery,
+  getBookingsQueryVariables
+} from '../../../graphql'
 
 type BookingTableProps = {
   thang: string,
@@ -28,112 +38,13 @@ function findCell (e: ?Element, stopper: ?Element): ?{ cellIndex: number, rowInd
   return findCell(e.parentElement, stopper)
 }
 
-const GET_BOOKINGS = gql`
-    query bookings($thang: ID!, $from: DateTimeInput!, $to: DateTimeInput!) {
-        thang(id: $thang) {
-            id
-            bookings(input: {from: $from, to: $to}) {
-                id
-                owner {
-                    id
-                    picture
-                }
-                from {
-                    day
-                    month
-                    minute
-                    hour
-                    year
-                }
-                to {
-                    day
-                    month
-                    minute
-                    hour
-                    year
-                }
-            }
-        }
-        me {
-            id
-        }
-    }
-`
-
-const CREATE_BOOKING = gql`
-    mutation createBooking ($thang: ID!, $from: DateTimeInput!, $to: DateTimeInput!){
-        createBooking(thang: $thang, from: $from, to: $to) {
-            id
-        }
-    }
-`
-const DELETE_BOOKING = gql`
-    mutation deleteBooking ($id: ID!){
-        deleteBooking(id: $id){
-            deleted
-        }
-    }
-`
-
-const SUBSCRIBE_BOOKINGS = gql`
-    subscription subscribeBookings($thang: ID!, $from: DateTimeInput!, $to: DateTimeInput!) {
-        bookingsChange(thang: $thang, input: {from: $from, to: $to}) {
-            add {
-                id
-                owner {
-                    id
-                    picture
-                }
-                from {
-                    day
-                    month
-                    minute
-                    hour
-                    year
-                }
-                to {
-                    day
-                    month
-                    minute
-                    hour
-                    year
-                }
-            }
-            remove {
-                id
-            }
-            change {
-                id
-                from {
-                    day
-                    month
-                    minute
-                    hour
-                    year
-                }
-                owner {
-                    id
-                    picture
-                }
-                to {
-                    day
-                    month
-                    minute
-                    hour
-                    year
-                }
-            }
-        }
-    }
-`
-
-type Dt = {
+type Dt = {|
   hour: number,
   minute: number,
   day: number,
   month: number,
   year: number
-}
+|}
 
 function momentToDt (m: moment): Dt {
   const hour = m.hour()
@@ -146,12 +57,12 @@ function momentToDt (m: moment): Dt {
   }
 }
 
-type Booking = {
+type Booking = {|
   from: Dt,
   to: Dt,
-  owner: { picture: string, id: string },
+  owner: {| picture: string, id: string |},
   id: string
-}
+|}
 
 type Bookings = {
   [number]: { // Year
@@ -252,9 +163,9 @@ class BookingTableBody extends React.Component<{ me: ?string, days: number, offs
   render () {
     return (
       <Mutation mutation={DELETE_BOOKING}>
-        {(deleteMutator) =>
+        {(deleteMutator: MutationFunction<deleteBookingMutationVariables>) =>
           <Mutation mutation={CREATE_BOOKING}>
-            {(createMutator) => {
+            {(createMutator: MutationFunction<createBookingMutationVariables>) => {
               return (
                 <TBaddy onClick={this._onClick(createMutator, deleteMutator)}>
                   <TableScroll>
@@ -392,10 +303,9 @@ class BookingTable extends React.Component<BookingTableProps, { days: number, no
           query={GET_BOOKINGS}
           fetchPolicy='cache-and-network'
           variables={variables}>
-          {({loading, error, data, subscribeToMore}) => {
+          {({loading, error, data, subscribeToMore}: QueryRenderProps<getBookingsQuery, getBookingsQueryVariables>) => {
             return (
               <BookingTableBody
-                // $FlowFixMe Update types
                 me={(data && data.me && data.me.id) || null}
                 days={this.state.days}
                 subscribe={() =>
@@ -422,7 +332,6 @@ class BookingTable extends React.Component<BookingTableProps, { days: number, no
                 now={now}
                 offset={from}
                 thang={this.props.thang}
-                // $FlowFixMe Update types
                 bookings={data && data.thang ? data.thang.bookings : null} />
             )
           }}

@@ -1,0 +1,17 @@
+query getThangUsers($id: ID!){
+    thang(id: $id) {
+        id
+        name
+        timezone
+        owners {
+            displayName
+            id
+            picture
+        }
+        users {
+            displayName
+            id
+            picture
+        }
+    }
+}

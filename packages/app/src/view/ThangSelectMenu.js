@@ -1,50 +1,21 @@
 // @flow
-import gql from 'graphql-tag'
 import React from 'react'
 import { FormattedMessage } from 'react-intl'
-import { Query } from 'react-apollo'
+import { Query, type QueryRenderProps } from 'react-apollo'
 import { MenuLink, Empty, Item, Items, SecondaryMenu } from './styled/Menu'
 import { H1 } from './styled/Header'
 import { Button } from './styled/Button'
 import { Add } from './styled/Icon'
 import Modal from './Modal'
 import type { ContextRouter } from 'react-router'
+import GET_THANGS from '../../graphql/getThangs.graphql'
+import SUBSCRIBE_THANGS from '../../graphql/subscribeThangs.graphql'
 
 import CreateThang from './CreateThang'
 import { withRouter } from 'react-router'
+import type { getThangsQuery } from '../../graphql'
 
-const GET_THANGS = gql`
-    query getThangs {
-        me {
-            id
-            thangs {
-                id
-                name
-            }
-        }
-    }
-`
-
-const SUBSCRIBE_THANGS = gql`
-    subscription subscribeThangs {
-        myThangsChange {
-            add {
-                id
-                name
-            }
-            remove {
-                id
-                name
-            }
-            change {
-                id
-                name
-            }
-        }
-    }
-`
-
-class ThangList extends React.Component<{ subscribe: () => mixed, thangs: { id: string, name: string }[] }> {
+class ThangList extends React.Component<{ subscribe: () => mixed, thangs: {| id: string, name: string |}[] }> {
   componentDidMount () {
     this.props.subscribe()
   }
@@ -75,9 +46,8 @@ class ListThangs extends React.Component<{}> {
   render () {
     return (
       <Query query={GET_THANGS}>
-        {({subscribeToMore, loading, error, data}) => {
-          // $FlowFixMe Update types
-          const me = (data || {}).me
+        {({subscribeToMore, loading, error, data}: QueryRenderProps<getThangsQuery, {}>) => {
+          const me = data && data.me ? data.me : null
           if (loading || !me) {
             return null
           }

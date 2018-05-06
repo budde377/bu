@@ -1,0 +1,29 @@
+query getBookings($thang: ID!, $from: DateTimeInput!, $to: DateTimeInput!) {
+    thang(id: $thang) {
+        id
+        bookings(input: {from: $from, to: $to}) {
+            id
+            owner {
+                id
+                picture
+            }
+            from {
+                day
+                month
+                minute
+                hour
+                year
+            }
+            to {
+                day
+                month
+                minute
+                hour
+                year
+            }
+        }
+    }
+    me {
+        id
+    }
+}

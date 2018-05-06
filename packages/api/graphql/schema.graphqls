@@ -1,9 +1,9 @@
 type DateTime {
-    hour: Int
-    minute: Int
-    day: Int
-    month: Int
-    year: Int
+    hour: Int!
+    minute: Int!
+    day: Int!
+    month: Int!
+    year: Int!
 }
 
 type User {
@@ -29,16 +29,16 @@ type ThangCollection {
 }
 
 input DateTimeInput {
-    hour: Int
-    minute: Int
-    day: Int
-    month: Int
-    year: Int
+    hour: Int!
+    minute: Int!
+    day: Int!
+    month: Int!
+    year: Int!
 }
 
 input ListBookingsInput {
-    from: DateTimeInput
-    to: DateTimeInput
+    from: DateTimeInput!
+    to: DateTimeInput!
 }
 
 type Thang {

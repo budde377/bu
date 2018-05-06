@@ -2,8 +2,7 @@
 
 import React from 'react'
 import { withRouter } from 'react-router'
-import { Query } from 'react-apollo'
-import gql from 'graphql-tag'
+import { Query, type QueryRenderProps } from 'react-apollo'
 import BookingTable from './BookingTable'
 import { FormattedMessage } from 'react-intl'
 import LogVisit from '../LogVisit'
@@ -12,55 +11,16 @@ import Logo from '../Logo'
 import { H1 } from '../styled/Header'
 import { Container, Top } from '../styled/Thang'
 import { Helmet } from 'react-helmet'
-
-const GET_THANG = gql`
-    query getThangUsers($id: ID!){
-        thang(id: $id) {
-            id
-            name
-            timezone
-            owners {
-                displayName
-                id
-                picture
-            }
-            users {
-                displayName
-                id
-                picture
-            }
-        }
-    }
-`
-
-const SUBSCRIBE_THANG = gql`
-    subscription subscribeThangUsers($id: ID!) {
-        thangChange(thang: $id) {
-            change {
-                id
-                name
-                timezone
-                owners {
-                    displayName
-                    id
-                    picture
-                }
-                users {
-                    displayName
-                    id
-                    picture
-                }
-            }
-        }
-    }
-`
+import GET_THANG_USERS from '../../../graphql/getThangUsers.graphql'
+import SUBSCRIBE_THANG_USERS from '../../../graphql/subscribeThangUsers.graphql'
+import type { getThangUsersQuery, getThangUsersQueryVariables } from '../../../graphql'
 
 class BaseThang extends React.Component<*> {
   render () {
     return (
       <Container>
-        <Query query={GET_THANG} variables={{id: this.props.match.params.id}}>
-          {({loading, error, data, subscribeToMore}) => {
+        <Query query={GET_THANG_USERS} variables={{id: this.props.match.params.id}}>
+          {({loading, error, data, subscribeToMore}: QueryRenderProps<getThangUsersQuery, getThangUsersQueryVariables>) => {
             if (loading) {
               return (
                 <div style={{width: '5em', margin: 'auto', paddingTop: '10%'}}>
@@ -73,8 +33,7 @@ class BaseThang extends React.Component<*> {
                 null // TODO error handing
               )
             }
-            // $FlowFixMe Update types
-            const thang = (data || {}).thang
+            const thang = data && data.thang ? data.thang : null
             if (!thang) {
               return (
                 <H1>
@@ -83,7 +42,7 @@ class BaseThang extends React.Component<*> {
               )
             }
             const subscribe = () => subscribeToMore({
-              document: SUBSCRIBE_THANG,
+              document: SUBSCRIBE_THANG_USERS,
               variables: {id: this.props.thang},
               updateQuery: (prev, {subscriptionData}) => {
                 if (!subscriptionData.data) return prev

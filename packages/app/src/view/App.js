@@ -1,7 +1,6 @@
 // @flow
 import React from 'react'
-import { Query } from 'react-apollo'
-import gql from 'graphql-tag'
+import { Query, type QueryRenderProps } from 'react-apollo'
 import { Redirect, Route, Switch } from 'react-router'
 import Thang from './thang'
 import { addLocaleData, FormattedMessage, IntlProvider } from 'react-intl'
@@ -24,25 +23,15 @@ import { Helmet } from 'react-helmet'
 import ThangSelectMenu from './ThangSelectMenu'
 import { A as Button } from './styled/Button'
 import { LogOut } from './styled/Icon'
+import GET_ME from '../../graphql/getMe.graphql'
+import type { getMeQuery } from '../../graphql'
 
 addLocaleData(englishLocaleData)
-
-const GET_ME = gql`
-    query {
-        me {
-            id
-            picture
-            displayName
-            emailVerified
-        }
-    }
-`
 
 type User = {
   id: string,
   picture: string,
-  displayName: string,
-  emailVerified: boolean
+  displayName: string
 }
 
 class SecondaryMenu extends React.Component<{ user: User }, { open: boolean }> {
@@ -93,11 +82,10 @@ const LoggedInApp = ({user}: { user: User }) => (
 const App = () => (
   <IntlProvider locale={'en'} messages={messages}>
     <Query query={GET_ME}>
-      {({loading, error, data}) => {
+      {({loading, error, data}: QueryRenderProps<getMeQuery, {}>) => {
         if (loading) {
           return <Logo loading /> // TODO fix humongous loading
         }
-        // $FlowFixMe Update types
         const me: ?User = data && data.me ? data.me : null
         if (!me) {
           return (

@@ -1,0 +1,16 @@
+subscription subscribeThangs {
+    myThangsChange {
+        add {
+            id
+            name
+        }
+        remove {
+            id
+            name
+        }
+        change {
+            id
+            name
+        }
+    }
+}

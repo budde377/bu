@@ -1,21 +1,13 @@
 // @flow
 
 import React from 'react'
-import gql from 'graphql-tag'
-import { Mutation } from 'react-apollo'
+import { Mutation, type MutationFunction, type MutationResult } from 'react-apollo'
 import { injectIntl, FormattedMessage } from 'react-intl'
 import type { InjectIntlProvidedProps } from 'react-intl'
 import { Hint, Form, Input, Label } from './styled/Form'
 import { Button } from './styled/Button'
-
-const CREATE_THANG = gql`
-    mutation createThang($name: String!) {
-        createThang (name: $name) {
-            name
-            id
-        }
-    }
-`
+import CREATE_THANG from '../../graphql/createThang.graphql'
+import type { createThangMutation, createThangMutationVariables } from '../../graphql'
 
 class CreateThang extends React.Component<{ onCreate: (id: string) => mixed } & InjectIntlProvidedProps, { name: string, submitted: boolean }> {
   state = {name: '', submitted: false}
@@ -37,7 +29,7 @@ class CreateThang extends React.Component<{ onCreate: (id: string) => mixed } & 
   render () {
     return (
       <Mutation mutation={CREATE_THANG}>
-        {(createThang, {data, loading}) => (
+        {(createThang: MutationFunction<createThangMutationVariables>, {data, loading}: MutationResult<createThangMutation>) => (
           <Form onSubmit={this._onSubmit(createThang)}>
             <Label>
               <Hint show={this.state.submitted && !this.state.name.trim()}>
