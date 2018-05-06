@@ -39,7 +39,7 @@ export const SecondaryMenuOverlay = styled.div`
   right: -${({open}) => open ? 0 : 20}rem;
   position: absolute;
   transition: 400ms right ease;
-  background: #6ab7c1;
+  background: #12f1ff;
   > ${A} {
     position: absolute;
     bottom: 0;
