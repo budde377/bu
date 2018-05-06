@@ -97,7 +97,8 @@ const App = () => (
         if (loading) {
           return <Logo loading /> // TODO fix humongous loading
         }
-        const me: ?User = (data || {}).me
+        // $FlowFixMe Update types
+        const me: ?User = data && data.me ? data.me : null
         if (!me) {
           return (
             <PublicApp />

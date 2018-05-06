@@ -7,7 +7,8 @@
 		"test": "lerna run test",
 		"dev": "docker-compose -f docker-compose.dev.yaml up",
 		"build:docker": "lerna run build:docker",
-		"publish:docker": "lerna run publish:docker"
+		"publish:docker": "lerna run publish:docker",
+		"deploy": "lerna run deploy"
 	},
 	"dependencies": {
 		"node-fetch": "^2.1.2"

@@ -6,6 +6,8 @@ services:
   - docker
 
 before_install:
+  - sudo ./scripts/install.sh
+  - curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get | bash
   - npm i -g npm@latest
   - npm ci
   - docker-compose up -d rdb

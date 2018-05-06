@@ -76,6 +76,7 @@ class ListThangs extends React.Component<{}> {
     return (
       <Query query={GET_THANGS}>
         {({subscribeToMore, loading, error, data}) => {
+          // $FlowFixMe Update types
           const me = (data || {}).me
           if (loading || !me) {
             return null

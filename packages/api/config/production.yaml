@@ -3,3 +3,4 @@ url:
 
 rethink:
   db: thang
+  password: rethinkdb

@@ -13,5 +13,11 @@ api:
 
 version: VERSION
 
+server:
+  key: SERVER_KEY
+
 auth:
   clientSecret: AUTH_CLIENT_SECRET
+
+redis:
+  host: REDIS_HOST

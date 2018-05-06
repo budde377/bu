@@ -395,6 +395,7 @@ class BookingTable extends React.Component<BookingTableProps, { days: number, no
           {({loading, error, data, subscribeToMore}) => {
             return (
               <BookingTableBody
+                // $FlowFixMe Update types
                 me={(data && data.me && data.me.id) || null}
                 days={this.state.days}
                 subscribe={() =>
@@ -421,6 +422,7 @@ class BookingTable extends React.Component<BookingTableProps, { days: number, no
                 now={now}
                 offset={from}
                 thang={this.props.thang}
+                // $FlowFixMe Update types
                 bookings={data && data.thang ? data.thang.bookings : null} />
             )
           }}

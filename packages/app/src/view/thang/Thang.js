@@ -73,6 +73,7 @@ class BaseThang extends React.Component<*> {
                 null // TODO error handing
               )
             }
+            // $FlowFixMe Update types
             const thang = (data || {}).thang
             if (!thang) {
               return (

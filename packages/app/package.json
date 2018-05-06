@@ -2,8 +2,8 @@
   "description": "Thang.io",
   "scripts": {
     "postinstall": "scripts/postinstall.js",
-    "build:docker": "docker build --build-arg VERSION=$VERSION -t budde377/thang-app:latest .",
-    "publish:docker": "docker push budde377/thang-app:latest",
+    "build:docker": "docker build --build-arg VERSION=$VERSION -t budde377/thang-app:${VERSION:-latest} .",
+    "publish:docker": "docker push budde377/thang-app:${VERSION:-latest}",
     "build:server": "NODE_ENV=production webpack  --progress --profile --no-colors --config webpack.config.server.js",
     "build": "NODE_ENV=production webpack  --progress --profile --no-colors --config webpack.config.js",
     "start": "node dist/server",
@@ -11,8 +11,11 @@
     "start:client": "NODE_ENV=development webpack-dev-server --config webpack.config.dev.js  --hot",
     "test:flow": "flow .",
     "test:lint": "eslint .",
-    "test": "npm run test:flow && npm run test:lint",
-    "dev": "npm run start:client & npm run start:server"
+    "test:helm": "helm lint ./helm/*",
+    "test": "npm run test:lint && npm run test:helm && npm run test:flow",
+    "dev": "npm run start:client & npm run start:server",
+    "deploy:helm": "helm upgrade -i --wait --timeout 300 --set image.tag=${VERSION:-latest} --set server.key=${SERVER_KEY:?Define server key} --set auth.clientSecret=${AUTH_CLIENT_SECRET:?Define auth client secret} thang-app helm/app",
+    "deploy": "npm run build:docker && npm run publish:docker && npm run deploy:helm"
   },
   "repository": {
     "type": "git",

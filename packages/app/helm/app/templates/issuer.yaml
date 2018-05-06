@@ -1,0 +1,15 @@
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Issuer
+metadata:
+  name: {{ template "app.fullname" . }}
+spec:
+  acme:
+    # The ACME server URL
+    server: {{ .Values.ingress.provider.server }}
+    # Email address used for ACME registration
+    email: {{ .Values.ingress.provider.email }}
+    # Name of a secret used to store the ACME account private key
+    privateKeySecretRef:
+      name: {{ template "app.fullname" . }}-iss
+    # Enable HTTP01 validations
+    http01: {}
