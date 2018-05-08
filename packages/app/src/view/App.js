@@ -46,13 +46,13 @@ class SecondaryMenu extends React.Component<{ user: User }, { open: boolean }> {
         <AvatarContainer backgroundImage={this.props.user.picture} onClick={this._toggleUserMenu}>
           <Avatar picture={this.props.user.picture} />
         </AvatarContainer>
-        <ThangSelectMenu />
         <SecondaryMenuOverlay open={this.state.open}>
           <Button href={'/auth/logout'} fluid color={'red'}>
             <LogOut />
             <FormattedMessage id={'logout'} />
           </Button>
         </SecondaryMenuOverlay>
+        <ThangSelectMenu />
       </MenuContainer>
     )
   }

@@ -4,7 +4,7 @@ import styled from 'styled-components'
 import { Link, NavLink } from 'react-router-dom'
 import { Avatar } from './User'
 import { H1 } from './Header'
-import { A } from './Button'
+
 export const LogoLink = styled(Link)`
   height: 2rem;
   padding: 1.5rem 2rem;
@@ -33,24 +33,26 @@ export const ContentContainer = styled.div`
 `
 
 export const SecondaryMenuOverlay = styled.div`
-  width: 20rem;
-  top: 5rem;
-  bottom: 0;
-  right: -${({open}) => open ? 0 : 20}rem;
+  width: calc(100% - 2em);
   position: absolute;
-  transition: 400ms right ease;
-  background: #12f1ff;
-  > ${A} {
+  padding: 1em;
+  top: 5rem;
+  display: ${({open}) => open ? 'block' : 'none'};
+  transition: 100ms opacity;
+  background: #F7F7F7;
+  border-bottom: 0.1em solid #aaa;
+  &:before {
+    content: '';
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    border: 0.5em solid #d6d6d6;
+    top: -1em;
+    left: calc(50% - 0.5em);
+    border-color: transparent transparent #F7F7F7 transparent;
   }
 `
 
 export const MenuContainer = styled.div`
   position: relative;
-  overflow: hidden;
   flex-grow: 0;
   flex-shrink: 0;
   background-color: #ededed;
@@ -72,7 +74,7 @@ export const AvatarContainer = styled.div`
   overflow: hidden;
   flex-grow: 0;
   flex-shrink: 0;
-  
+
   :before {
     content: "";
     position: absolute;
@@ -163,7 +165,7 @@ export const Item = styled.li`
   border-top-style: solid;
   line-height: 2em;
   &:last-of-type {
-    border-bottom-style: solid;  
+    border-bottom-style: solid;
   }
   ${MenuLink} {
     font-size: inherit;

@@ -53,6 +53,7 @@ export const Button = styled.button`
   cursor: pointer;
   line-height: 3em;
   height: 3em;
+  box-sizing: border-box;
   border-style: none none solid none;
   display: ${props => props.fluid ? 'block' : 'inline-block'};
   width: ${props => props.fluid ? '100%' : 'auto'};
