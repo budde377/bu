@@ -15,14 +15,15 @@ import { ServerStyleSheet } from 'styled-components'
 import {Helmet} from 'react-helmet'
 
 function gqlClient (accessToken: ?string) {
+  const link = createHttpLink({
+    uri: `${config.api.server.http}/graphql`,
+    headers: accessToken ? {authentication: `Bearer ${accessToken}`} : {},
+    fetch
+  })
   return new ApolloClient({
     ssrMode: true,
-    link: createHttpLink({
-      // $FlowFixMe: This is ok
-      uri: `${config.api.server.http}/graphql`,
-      headers: accessToken ? {authentication: `Bearer ${accessToken}`} : {},
-      fetch
-    }),
+    // $FlowFixMe stupid imports
+    link,
     cache: new InMemoryCache()
   })
 }
@@ -57,6 +58,7 @@ const m: () => Middleware = () =>
     if (context.url) {
       return ctx.redirect(context.url)
     }
+    // $FlowFixMe this exists
     const initialState = client.extract()
     const staticHelmet = Helmet.renderStatic()
     const html = (

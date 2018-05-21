@@ -132,7 +132,7 @@ export const Cell = styled.div`
   text-align: center;
   height: 3em;
   flex-basis: 0;
-  cursor: pointer;
+  cursor: ${({active}) => active ? 'pointer' : 'inherit'};
   position: relative;
   &:before {
     display: block;
@@ -157,6 +157,7 @@ export const Cell = styled.div`
     margin-left: -1.1em;
   }
   ${FauxCheck} {
+    display: ${({active}) => active ? 'inherit' : 'none'};
     position: absolute;
     top: 0.9em;
     left: 50%;

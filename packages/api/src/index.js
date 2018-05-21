@@ -10,23 +10,19 @@ import { execute, subscribe } from 'graphql'
 import cors from '@koa/cors'
 import { cachedTokenToUser } from './auth'
 import mw from './middleware'
+import type { Context } from './graphql/schema'
 
 const app = new Koa()
 app.use(cors())
 app.use(koaBody())
 app.use(logger())
 
-async function onConnect (connectionParams) {
+async function onConnect (connectionParams): Promise<Context> {
   if (!connectionParams.authToken) {
-    return {}
+    return {userProfile: null}
   }
-  const currentUser = await cachedTokenToUser(connectionParams.authToken)
-  if (!currentUser) {
-    return {}
-  }
-  return {
-    currentUser
-  }
+  const userProfile = await cachedTokenToUser(connectionParams.authToken)
+  return {userProfile: userProfile}
 }
 
 app.use(mw)

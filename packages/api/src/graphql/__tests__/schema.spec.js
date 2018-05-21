@@ -8,6 +8,9 @@ import * as db from '../../db'
 import { userPicture } from '../../util/communications'
 import { dtToTimestamp } from '../../util/dt'
 import { booking } from '../../db'
+import * as auth from '../../auth'
+
+jest.mock('../../auth')
 
 function fakeUser (): User {
   const givenName = faker.name.firstName()
@@ -69,6 +72,11 @@ expect.extend({
     }
   }
 })
+
+function buildContext (user = null, profile = {emailVerified: true}) {
+  return {userProfile: user ? {user, profile} : null}
+}
+
 describe('schema', () => {
   let user1
   let user2
@@ -117,11 +125,11 @@ describe('schema', () => {
     `
 
     it('Should not retrieve me on not logged in', async () => {
-      const result = await graphql(schema, meQuery, {}, {})
+      const result = await graphql(schema, meQuery, {}, buildContext())
       expect(result).toEqual({data: {me: null}})
     })
     it('Should retrieve on logged in', async () => {
-      const result = await graphql(schema, meQuery, {}, {currentUser: user1})
+      const result = await graphql(schema, meQuery, {}, buildContext(user1))
       expect(result).toEqual({
         data: {
           me: {
@@ -132,6 +140,28 @@ describe('schema', () => {
             bookings: [],
             displayName: user1.givenName || user1.nickname,
             emailVerified: user1.emailVerified,
+            familyName: user1.familyName,
+            givenName: user1.givenName,
+            id: user1.id,
+            nickname: user1.nickname,
+            picture: userPicture(user1),
+            timezone: user1.timezone
+          }
+        }
+      })
+    })
+    it('Should retrieve emailVerified from context', async () => {
+      const result = await graphql(schema, meQuery, {}, buildContext(user1, {emailVerified: false}))
+      expect(result).toEqual({
+        data: {
+          me: {
+            name: user1.name,
+            email: user1.email,
+            collections: [],
+            thangs: [],
+            bookings: [],
+            displayName: user1.givenName || user1.nickname,
+            emailVerified: false,
             familyName: user1.familyName,
             givenName: user1.givenName,
             id: user1.id,
@@ -171,7 +201,7 @@ describe('schema', () => {
       }
     `
     it('should not fetch too much on public', async () => {
-      const result = await graphql(schema, q(), {}, {})
+      const result = await graphql(schema, q(), {}, buildContext())
       expect(result).toEqual({
         data: {
           user: {
@@ -193,7 +223,7 @@ describe('schema', () => {
       })
     })
     it('should not fetch too much on other user', async () => {
-      const result = await graphql(schema, q({id: user2.id}), {}, {currentUser: user1})
+      const result = await graphql(schema, q({id: user2.id}), {}, buildContext(user1))
       expect(result).toEqual({
         data: {
           user: {
@@ -215,7 +245,7 @@ describe('schema', () => {
       })
     })
     it('should not fetch thang on other user', async () => {
-      const result = await graphql(schema, q(), {}, {currentUser: user2})
+      const result = await graphql(schema, q(), {}, buildContext(user2))
       expect(result).toEqual({
         data: {
           user: {
@@ -237,7 +267,7 @@ describe('schema', () => {
       })
     })
     it('should fetch much on self', async () => {
-      const result = await graphql(schema, q(), {}, {currentUser: user1})
+      const result = await graphql(schema, q(), {}, buildContext(user1))
       expect(result).toEqual({
         data: {
           user: {
@@ -259,7 +289,7 @@ describe('schema', () => {
       })
     })
     it('should fetch thangs on self', async () => {
-      const result = await graphql(schema, q({id: user2.id}), {}, {currentUser: user2})
+      const result = await graphql(schema, q({id: user2.id}), {}, buildContext(user2))
       expect(result).toEqual({
         data: {
           user: {
@@ -281,7 +311,7 @@ describe('schema', () => {
       })
     })
     it('should fetch with email', async () => {
-      const result = await graphql(schema, q({id: '', email: user1.email}), {}, {currentUser: user1})
+      const result = await graphql(schema, q({id: '', email: user1.email}), {}, buildContext(user1))
       expect(result).toEqual({
         data: {
           user: {
@@ -303,7 +333,7 @@ describe('schema', () => {
       })
     })
     it('should succeed on invalid id', async () => {
-      const result = await graphql(schema, q({id: faker.random.uuid()}), {}, {currentUser: user1})
+      const result = await graphql(schema, q({id: faker.random.uuid()}), {}, buildContext(user1))
       expect(result).toEqual({
         data: {
           user: null
@@ -311,7 +341,7 @@ describe('schema', () => {
       })
     })
     it('should succeed on no id or email', async () => {
-      const result = await graphql(schema, q({id: ''}), {}, {currentUser: user1})
+      const result = await graphql(schema, q({id: ''}), {}, buildContext(user1))
       expect(result).toEqual({
         data: {
           user: null
@@ -345,11 +375,11 @@ describe('schema', () => {
       thang = b
     })
     it('should return null on not found', async () => {
-      const result = await graphql(schema, q('foobar'), {}, {})
+      const result = await graphql(schema, q('foobar'), {}, buildContext())
       expect(result).toEqual({data: {thang: null}})
     })
     it('should succeed', async () => {
-      const result = await graphql(schema, q(thang.id), {}, {})
+      const result = await graphql(schema, q(thang.id), {}, buildContext())
       expect(result).toEqual({
         data: {
           thang: {
@@ -358,6 +388,55 @@ describe('schema', () => {
           }
         }
       })
+    })
+  })
+
+  describe('mutation: sendVerificationEmail', () => {
+    beforeEach(() => {
+      // $FlowFixMe this is mocked
+      auth.sendVerificationEmail.mockClear()
+    })
+    const mutation = `
+      mutation sendVerificationEmail {
+          sendVerificationEmail {
+              sent
+          }
+      }
+    `
+    it('should return right on success', async () => {
+      // $FlowFixMe this is mocked
+      auth.sendVerificationEmail.mockReturnValue({sent: 1})
+      const result = await graphql(schema, mutation, {}, buildContext(user1, {emailVerified: false}))
+      // $FlowFixMe this is mocked
+      expect(auth.sendVerificationEmail.mock.calls.length).toBe(1)
+      expect(result).toEqual({data: {sendVerificationEmail: {sent: 1}}})
+    })
+
+    it('should return zero on email already verified', async () => {
+      // $FlowFixMe this is mocked
+      auth.sendVerificationEmail.mockReturnValue({sent: 1})
+      const result = await graphql(schema, mutation, {}, buildContext(user1, {emailVerified: true}))
+      // $FlowFixMe this is mocked
+      expect(auth.sendVerificationEmail.mock.calls.length).toBe(0)
+      expect(result).toEqual({data: {sendVerificationEmail: {sent: 0}}})
+    })
+
+    it('should return zero on user not logged in', async () => {
+      // $FlowFixMe this is mocked
+      auth.sendVerificationEmail.mockReturnValue({sent: 1})
+      const result = await graphql(schema, mutation, {}, buildContext())
+      // $FlowFixMe this is mocked
+      expect(auth.sendVerificationEmail.mock.calls.length).toBe(0)
+      expect(result).toEqual({data: {sendVerificationEmail: {sent: 0}}})
+    })
+
+    it('should return zero on return zero', async () => {
+      // $FlowFixMe this is mocked
+      auth.sendVerificationEmail.mockReturnValue({sent: 0})
+      const result = await graphql(schema, mutation, {}, buildContext(user1, {emailVerified: false}))
+      // $FlowFixMe this is mocked
+      expect(auth.sendVerificationEmail.mock.calls.length).toBe(1)
+      expect(result).toEqual({data: {sendVerificationEmail: {sent: 0}}})
     })
   })
 
@@ -381,14 +460,14 @@ describe('schema', () => {
     it('should fail on not logged in', async () => {
       const from = `{hour: 1, minute: 1, day: 27, month: 2, year: ${year + 2000}}`
       const to = `{hour: 1, minute: 1, day: 30, month: 2, year: ${year + 2000}}`
-      const result = await graphql(schema, createBooking('bas', from, to), {}, {})
+      const result = await graphql(schema, createBooking('bas', from, to), {}, buildContext())
       // $FlowFixMe
       expect(result).toFailWithCode('USER_NOT_LOGGED_IN')
     })
     it('should fail on invalid thang id', async () => {
       const from = `{hour: 1, minute: 1, day: 27, month: 2, year: ${year + 2001}}`
       const to = `{hour: 1, minute: 1, day: 30, month: 2, year: ${year + 2001}}`
-      const result = await graphql(schema, createBooking('bas', from, to), {}, {currentUser: user1})
+      const result = await graphql(schema, createBooking('bas', from, to), {}, buildContext(user1))
       // $FlowFixMe
       expect(result).toFailWithCode('NOT_FOUND')
     })
@@ -397,102 +476,102 @@ describe('schema', () => {
       const from = `{hour: 1, minute: 1, day: 27, month: 2, year: ${year + 2002}}`
       const to = `{hour: 1, minute: 1, day: 28, month: 2, year: ${year + 2002}}`
       // $FlowFixMe
-      const result = await graphql(schema, createBooking(thang.id, from, to), {}, {currentUser: user1})
+      const result = await graphql(schema, createBooking(thang.id, from, to), {}, buildContext(user1))
       expect(result.data).toBeTruthy()
       expect(result.data.createBooking.owner).toEqual({id: user1.id})
       expect(result.data.createBooking.thang.bookings).toEqual([{id: result.data.createBooking.id}])
     })
     it('should fail on email not verified', async () => {
-      const result = await graphql(schema, createBooking(), {}, {currentUser: {...user1, emailVerified: false}})
+      const result = await graphql(schema, createBooking(), {}, buildContext(user1, {emailVerified: false}))
       // $FlowFixMe
       expect(result).toFailWithCode('USER_EMAIL_NOT_VERIFIED')
     })
     it('should fail invalid from date', async () => {
       const from = `{hour: 1, minute: 1, day: 30, month: 2, year: ${year + 2010}}`
       const to = `{hour: 1, minute: 1, day: 30, month: 3, year: ${year + 2010}}`
-      const result = await graphql(schema, createBooking(thang.id, from, to), {}, {currentUser: user1})
+      const result = await graphql(schema, createBooking(thang.id, from, to), {}, buildContext(user1))
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
     it('should fail invalid to date', async () => {
       const from = `{hour: 1, minute: 1, day: 27, month: 2, year: ${year + 2010}}`
       const to = `{hour: 1, minute: 1, day: 30, month: 2, year: ${year + 2010}}`
-      const result = await graphql(schema, createBooking(thang.id, from, to), {}, {currentUser: user1})
+      const result = await graphql(schema, createBooking(thang.id, from, to), {}, buildContext(user1))
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
     it('should fail with from after to', async () => {
       const from = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2010}}`
       const to = `{hour: 1, minute: 1, day: 1, month: 1, year: ${year + 2010}}`
-      const result = await graphql(schema, createBooking(thang.id, from, to), {}, {currentUser: user1})
+      const result = await graphql(schema, createBooking(thang.id, from, to), {}, buildContext(user1))
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
     it('should fail with from eq to to', async () => {
       const from = `{hour: 1, minute: 1, day: 1, month: 1, year: ${year + 2010}}`
       const to = `{hour: 1, minute: 1, day: 1, month: 1, year: ${year + 2010}}`
-      const result = await graphql(schema, createBooking(thang.id, from, to), {}, {currentUser: user1})
+      const result = await graphql(schema, createBooking(thang.id, from, to), {}, buildContext(user1))
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
     it('should fail with overlap', async () => {
       const from1 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2020}}`
       const to1 = `{hour: 1, minute: 1, day: 2, month: 2, year: ${year + 2020}}`
-      const r1 = await graphql(schema, createBooking(thang.id, from1, to1), {}, {currentUser: user1})
+      const r1 = await graphql(schema, createBooking(thang.id, from1, to1), {}, buildContext(user1))
       expect(r1.data).toBeTruthy()
       const from2 = `{hour: 1, minute: 1, day: 1, month: 1, year: ${year + 2020}}`
       const to2 = `{hour: 1, minute: 1, day: 1, month: 3, year: ${year + 2020}}`
-      const r2 = await graphql(schema, createBooking(thang.id, from2, to2), {}, {currentUser: user1})
+      const r2 = await graphql(schema, createBooking(thang.id, from2, to2), {}, buildContext(user1))
       // $FlowFixMe
       expect(r2).toFailWithCode('DUPLICATE')
     })
     it('should fail with overlap 2', async () => {
       const from1 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2021}}`
       const to1 = `{hour: 1, minute: 1, day: 2, month: 2, year: ${year + 2021}}`
-      const r1 = await graphql(schema, createBooking(thang.id, from1, to1), {}, {currentUser: user1})
+      const r1 = await graphql(schema, createBooking(thang.id, from1, to1), {}, buildContext(user1))
       expect(r1.data).toBeTruthy()
       const from2 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2021}}`
       const to2 = `{hour: 1, minute: 1, day: 2, month: 2, year: ${year + 2021}}`
-      const r2 = await graphql(schema, createBooking(thang.id, from2, to2), {}, {currentUser: user1})
+      const r2 = await graphql(schema, createBooking(thang.id, from2, to2), {}, buildContext(user1))
       // $FlowFixMe
       expect(r2).toFailWithCode('DUPLICATE')
     })
     it('should fail with overlap 4', async () => {
       const from1 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2023}}`
       const to1 = `{hour: 1, minute: 1, day: 3, month: 2, year: ${year + 2023}}`
-      const r1 = await graphql(schema, createBooking(thang.id, from1, to1), {}, {currentUser: user1})
+      const r1 = await graphql(schema, createBooking(thang.id, from1, to1), {}, buildContext(user1))
       expect(r1.data).toBeTruthy()
       const from2 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2023}}`
       const to2 = `{hour: 1, minute: 1, day: 2, month: 2, year: ${year + 2023}}`
-      const r2 = await graphql(schema, createBooking(thang.id, from2, to2), {}, {currentUser: user1})
+      const r2 = await graphql(schema, createBooking(thang.id, from2, to2), {}, buildContext(user1))
       // $FlowFixMe
       expect(r2).toFailWithCode('DUPLICATE')
     })
     it('should fail with time passed', async () => {
       const from1 = `{hour: 1, minute: 1, day: 1, month: 2, year: 2000}`
       const to1 = `{hour: 1, minute: 1, day: 3, month: 2, year: 2000}`
-      const r1 = await graphql(schema, createBooking(thang.id, from1, to1), {}, {currentUser: user1})
+      const r1 = await graphql(schema, createBooking(thang.id, from1, to1), {}, buildContext(user1))
       // $FlowFixMe
       expect(r1).toFailWithCode('INVALID_INPUT')
     })
     it('should succeed with close to overlap', async () => {
       const from1 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2024}}`
       const to1 = `{hour: 1, minute: 1, day: 3, month: 2, year: ${year + 2024}}`
-      const r1 = await graphql(schema, createBooking(thang.id, from1, to1), {}, {currentUser: user1})
+      const r1 = await graphql(schema, createBooking(thang.id, from1, to1), {}, buildContext(user1))
       expect(r1.data).toBeTruthy()
       const from2 = `{hour: 1, minute: 1, day: 3, month: 2, year: ${year + 2024}}`
       const to2 = `{hour: 1, minute: 1, day: 6, month: 2, year: ${year + 2024}}`
-      const r2 = await graphql(schema, createBooking(thang.id, from2, to2), {}, {currentUser: user1})
+      const r2 = await graphql(schema, createBooking(thang.id, from2, to2), {}, buildContext(user1))
       expect(r2.data).toBeTruthy()
     })
     it('should succeed with close to overlap 2', async () => {
       const from1 = `{hour: 1, minute: 1, day: 3, month: 2, year: ${year + 2024}}`
       const to1 = `{hour: 1, minute: 1, day: 6, month: 2, year: ${year + 2024}}`
-      const r1 = await graphql(schema, createBooking(thang.id, from1, to1), {}, {currentUser: user1})
+      const r1 = await graphql(schema, createBooking(thang.id, from1, to1), {}, buildContext(user1))
       expect(r1.data).toBeTruthy()
       const from2 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2024}}`
       const to2 = `{hour: 1, minute: 1, day: 3, month: 2, year: ${year + 2024}}`
-      const r2 = await graphql(schema, createBooking(thang.id, from2, to2), {}, {currentUser: user1})
+      const r2 = await graphql(schema, createBooking(thang.id, from2, to2), {}, buildContext(user1))
       expect(r2.data).toBeTruthy()
     })
   })
@@ -515,27 +594,27 @@ describe('schema', () => {
     }
   `
     it('should fail on not logged in', async () => {
-      const result = await graphql(schema, createThang(), {}, {})
+      const result = await graphql(schema, createThang(), {}, buildContext())
       // $FlowFixMe
       expect(result).toFailWithCode('USER_NOT_LOGGED_IN')
     })
     it('should fail on invalid timezone', async () => {
-      const result = await graphql(schema, createThang({tz: 'Asia/Wattistan'}), {}, {currentUser: user1})
+      const result = await graphql(schema, createThang({tz: 'Asia/Wattistan'}), {}, buildContext(user1))
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
     it('should fail on invalid name', async () => {
-      const result = await graphql(schema, createThang({name: ''}), {}, {currentUser: user1})
+      const result = await graphql(schema, createThang({name: ''}), {}, buildContext(user1))
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
     it('should create thang', async () => {
-      const result = await graphql(schema, createThang(), {}, {currentUser: user1})
+      const result = await graphql(schema, createThang(), {}, buildContext(user1))
       expect(result.data).toBeTruthy()
     })
     it('should create thang with user timezone', async () => {
       // $FlowFixMe
-      const result = await graphql(schema, createThang({tz: null}), {}, {currentUser: user1})
+      const result = await graphql(schema, createThang({tz: null}), {}, buildContext(user1))
       expect(result.data).toBeTruthy()
       expect(result.data.createThang.timezone).toBe(user1.timezone)
       expect(result.data.createThang.users).toEqual([{id: user1.id}])
@@ -543,7 +622,7 @@ describe('schema', () => {
       expect(result.data.createThang.collection).toBeNull()
     })
     it('should fail on email not verified', async () => {
-      const result = await graphql(schema, createThang(), {}, {currentUser: {...user1, emailVerified: false}})
+      const result = await graphql(schema, createThang(), {}, buildContext(user1, {emailVerified: false}))
       // $FlowFixMe
       expect(result).toFailWithCode('USER_EMAIL_NOT_VERIFIED')
     })
@@ -563,24 +642,24 @@ describe('schema', () => {
       }
     `
     it('should fail on not logged in', async () => {
-      const result = await graphql(schema, createThangCollection(), {}, {})
+      const result = await graphql(schema, createThangCollection(), {}, buildContext())
       // $FlowFixMe
       expect(result).toFailWithCode('USER_NOT_LOGGED_IN')
     })
     it('should fail on invalid name', async () => {
-      const result = await graphql(schema, createThangCollection({name: ''}), {}, {currentUser: user1})
+      const result = await graphql(schema, createThangCollection({name: ''}), {}, buildContext(user1))
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
     it('should create thang collection', async () => {
       // $FlowFixMe
-      const result = await graphql(schema, createThangCollection(), {}, {currentUser: user1})
+      const result = await graphql(schema, createThangCollection(), {}, buildContext(user1))
       expect(result.data).toBeTruthy()
       expect(result.data.createThangCollection.thangs).toEqual([])
       expect(result.data.createThangCollection.owners).toEqual([{id: user1.id}])
     })
     it('should fail on email not verified', async () => {
-      const result = await graphql(schema, createThangCollection(), {}, {currentUser: {...user1, emailVerified: false}})
+      const result = await graphql(schema, createThangCollection(), {}, buildContext(user1, {emailVerified: false}))
       // $FlowFixMe
       expect(result).toFailWithCode('USER_EMAIL_NOT_VERIFIED')
     })
@@ -594,25 +673,25 @@ describe('schema', () => {
       }
     `
     it('should fail on not logged in', async () => {
-      const result = await graphql(schema, deleteBooking(booking.id), {}, {})
+      const result = await graphql(schema, deleteBooking(booking.id), {}, buildContext())
       // $FlowFixMe
       expect(result).toFailWithCode('USER_NOT_LOGGED_IN')
     })
     it('should fail on not owner', async () => {
-      const result = await graphql(schema, deleteBooking(booking.id), {}, {currentUser: user3})
+      const result = await graphql(schema, deleteBooking(booking.id), {}, buildContext(user3))
       // $FlowFixMe
       expect(result).toFailWithCode('INSUFFICIENT_PERMISSIONS')
     })
     it('should succeed when owner', async () => {
-      const result = await graphql(schema, deleteBooking(booking.id), {}, {currentUser: user1})
+      const result = await graphql(schema, deleteBooking(booking.id), {}, buildContext(user1))
       expect(result).toEqual({data: {deleteBooking: {deleted: 1}}})
     })
     it('should succeed when thang owner', async () => {
-      const result = await graphql(schema, deleteBooking(booking.id), {}, {currentUser: user2})
+      const result = await graphql(schema, deleteBooking(booking.id), {}, buildContext(user2))
       expect(result).toEqual({data: {deleteBooking: {deleted: 1}}})
     })
     it('should succeed no thang', async () => {
-      const result = await graphql(schema, deleteBooking('foobar'), {}, {currentUser: user2})
+      const result = await graphql(schema, deleteBooking('foobar'), {}, buildContext(user2))
       expect(result).toEqual({data: {deleteBooking: {deleted: 0}}})
     })
   })
@@ -640,21 +719,21 @@ describe('schema', () => {
       thang = b
     })
     it('should fail on not logged in', async () => {
-      const result = await graphql(schema, deleteThang(thang.id), {}, {})
+      const result = await graphql(schema, deleteThang(thang.id), {}, buildContext())
       // $FlowFixMe
       expect(result).toFailWithCode('USER_NOT_LOGGED_IN')
     })
     it('should fail on not owner', async () => {
-      const result = await graphql(schema, deleteThang(thang.id), {}, {currentUser: user3})
+      const result = await graphql(schema, deleteThang(thang.id), {}, buildContext(user3))
       // $FlowFixMe
       expect(result).toFailWithCode('INSUFFICIENT_PERMISSIONS')
     })
     it('should succeed when owner', async () => {
-      const result = await graphql(schema, deleteThang(thang.id), {}, {currentUser: user1})
+      const result = await graphql(schema, deleteThang(thang.id), {}, buildContext(user1))
       expect(result).toEqual({data: {deleteThang: {deleted: 1}}})
     })
     it('should succeed no thang', async () => {
-      const result = await graphql(schema, deleteThang('Foobar'), {}, {currentUser: user2})
+      const result = await graphql(schema, deleteThang('Foobar'), {}, buildContext(user2))
       expect(result).toEqual({data: {deleteThang: {deleted: 0}}})
     })
   })
@@ -679,21 +758,21 @@ describe('schema', () => {
       thang = b
     })
     it('should fail on not logged in', async () => {
-      const result = await graphql(schema, deleteThangCollection(thang.id), {}, {})
+      const result = await graphql(schema, deleteThangCollection(thang.id), {}, buildContext())
       // $FlowFixMe
       expect(result).toFailWithCode('USER_NOT_LOGGED_IN')
     })
     it('should fail on not owner', async () => {
-      const result = await graphql(schema, deleteThangCollection(thang.id), {}, {currentUser: user3})
+      const result = await graphql(schema, deleteThangCollection(thang.id), {}, buildContext(user3))
       // $FlowFixMe
       expect(result).toFailWithCode('INSUFFICIENT_PERMISSIONS')
     })
     it('should succeed when owner', async () => {
-      const result = await graphql(schema, deleteThangCollection(thang.id), {}, {currentUser: user1})
+      const result = await graphql(schema, deleteThangCollection(thang.id), {}, buildContext(user1))
       expect(result).toEqual({data: {deleteThangCollection: {deleted: 1}}})
     })
     it('should succeed no thang', async () => {
-      const result = await graphql(schema, deleteThangCollection('Foobar'), {}, {currentUser: user2})
+      const result = await graphql(schema, deleteThangCollection('Foobar'), {}, buildContext(user2))
       expect(result).toEqual({data: {deleteThangCollection: {deleted: 0}}})
     })
   })
@@ -729,13 +808,13 @@ describe('schema', () => {
       expect(result).toFailWithCode('USER_NOT_LOGGED_IN')
     })
     it('should fail on no such thang', async () => {
-      const result = await graphql(schema, visitThang('foobar'), {}, {currentUser: user2})
+      const result = await graphql(schema, visitThang('foobar'), {}, buildContext(user2))
       // $FlowFixMe
       expect(result).toFailWithCode('NOT_FOUND')
     })
     it('should succeed when owner', async () => {
       // $FlowFixMe
-      const result = await graphql(schema, visitThang(thang.id), {}, {currentUser: user1})
+      const result = await graphql(schema, visitThang(thang.id), {}, buildContext(user1))
       expect(result.data).toBeTruthy()
       expect(result.data.visitThang.thang).toEqual({
         id: thang.id

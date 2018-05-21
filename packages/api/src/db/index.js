@@ -13,9 +13,9 @@ const requiredTables = { // TODO more advanced init setup
   thangCollections: r.tableCreate('thangCollections')
 }
 
-export type Picture = { data: Buffer, mime: string, fetched: number }
+export type Picture = {| data: Buffer, mime: string, fetched: number |}
 
-export type User = {
+export type User = {|
   id: string,
   name: string,
   nickname: string,
@@ -26,31 +26,31 @@ export type User = {
   givenName: ?string,
   familyName: ?string,
   timezone: string
-}
+|}
 
-export type Thang = {
+export type Thang = {|
   id: string,
   name: string,
   owners: string[],
   users: string[],
   collection: ?string,
   timezone: string
-}
+|}
 
-type ThangCollection = {
+type ThangCollection = {|
   id: string,
   name: string,
   owners: string[]
-}
-export type Dt = {
+|}
+export type Dt = {|
   month: number,
   hour: number,
   day: number,
   minute: number,
   year: number
-}
+|}
 
-export type Booking = {
+export type Booking = {|
   id: string,
   from: Dt,
   to: Dt,
@@ -58,12 +58,12 @@ export type Booking = {
   toTime: Date,
   owner: string,
   thang: string
-}
+|}
 
-type VisitLogEntry = {
+type VisitLogEntry = {|
   thang: string,
   user: string
-}
+|}
 
 type WithoutId<V> = $Diff<V, { id: string }>
 

@@ -7,3 +7,8 @@ port:
   __format: "json"
 
 version: VERSION
+
+auth:
+  management:
+    clientId: AUTH_MANAGEMENT_CLIENT_ID
+    clientSecret: AUTH_MANAGEMENT_CLIENT_SECRET

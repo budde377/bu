@@ -64,13 +64,17 @@ type Query {
 }
 
 type DeleteResult {
-    deleted: Int
+    deleted: Int!
 }
 
 type VisitLogEntry {
     id: ID!
     thang: Thang!
     user: User!
+}
+
+type SentResult {
+    sent: Int!
 }
 
 type Mutation {
@@ -81,6 +85,7 @@ type Mutation {
     deleteBooking(id: ID!): DeleteResult!
     visitThang(id: ID!): VisitLogEntry!
     deleteThangCollection(id: ID!): DeleteResult!
+    sendVerificationEmail: SentResult!
 }
 
 type ChangeBooking {

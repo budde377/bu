@@ -20,9 +20,12 @@ import type {
   getBookingsQuery,
   getBookingsQueryVariables
 } from '../../../graphql'
+import EmailVerifiedCheck from '../EmailVerifiedCheck'
 
 type BookingTableProps = {
   thang: string,
+  active: boolean,
+  me: ?string,
   timezone: string
 }
 
@@ -94,7 +97,7 @@ function parseBookings (bs: Booking[]): Bookings {
   }, {})
 }
 
-class BookingTableBody extends React.Component<{ me: ?string, days: number, offset: moment, now: moment, thang: string, bookings: ?Array<Booking>, subscribe: () => (() => mixed) }, { bookings: Bookings }> {
+class BookingTableBody extends React.Component<{ active: boolean, me: ?string, days: number, offset: moment, now: moment, thang: string, bookings: ?Array<Booking>, subscribe: () => (() => mixed) }, { bookings: Bookings }> {
   _unsubscribe: ?() => mixed = null
 
   constructor (props: *) {
@@ -186,13 +189,13 @@ class BookingTableBody extends React.Component<{ me: ?string, days: number, offs
                                   <Cell
                                     key={j} data-cell-index={j} data-row-index={i} me={this.props.me}
                                     owner={current && current.owner.id}
+                                    active={this.props.active}
                                     percent={(this.props.now.isSame(n, 'h') ? this.props.now.minute() / 60 : (Math.max(0, Math.min(1, this.props.now.diff(n, 'h')))))}>
                                     <InterCell>
                                       {
                                         current
-                                          ? (
-                                            <Avatar picture={current.owner.picture} />)
-                                          : (<FauxCheck />)
+                                          ? <Avatar picture={current.owner.picture} />
+                                          : <FauxCheck />
                                       }
                                     </InterCell>
                                   </Cell>
@@ -303,42 +306,50 @@ class BookingTable extends React.Component<BookingTableProps, { days: number, no
           query={GET_BOOKINGS}
           fetchPolicy='cache-and-network'
           variables={variables}>
-          {({loading, error, data, subscribeToMore}: QueryRenderProps<getBookingsQuery, getBookingsQueryVariables>) => {
-            return (
-              <BookingTableBody
-                me={(data && data.me && data.me.id) || null}
-                days={this.state.days}
-                subscribe={() =>
-                  subscribeToMore({
-                    document: SUBSCRIBE_BOOKINGS,
-                    variables,
-                    updateQuery: (prev, {subscriptionData}) => {
-                      if (!subscriptionData.data) return prev
-                      const {bookingsChange: {add, change, remove}} = subscriptionData.data
-                      const old = prev.thang.bookings
-                      const t1 = add
-                        ? [...old, add]
-                        : old
-                      const t2 = change
-                        ? t1.map((t) => t.id === change.id ? change : t)
-                        : t1
-                      const bookings = remove
-                        ? t2.filter((t) => t.id !== remove.id)
-                        : t2
-                      return {...prev, thang: {...prev.thang, bookings}}
+          {({loading, error, data, subscribeToMore}: QueryRenderProps<getBookingsQuery, getBookingsQueryVariables>) => (
+            <BookingTableBody
+              me={this.props.me}
+              active={this.props.active}
+              days={this.state.days}
+              subscribe={() =>
+                subscribeToMore({
+                  document: SUBSCRIBE_BOOKINGS,
+                  variables,
+                  updateQuery: (prev, {subscriptionData}) => {
+                    if (!subscriptionData.data) return prev
+                    const {bookingsChange: {add, change, remove}} = subscriptionData.data
+                    if (!prev.thang) {
+                      return prev
                     }
-                  })
-                }
-                now={now}
-                offset={from}
-                thang={this.props.thang}
-                bookings={data && data.thang ? data.thang.bookings : null} />
-            )
-          }}
+                    const old = prev.thang.bookings
+                    const t1 = add
+                      ? [...old, add]
+                      : old
+                    const t2 = change
+                      ? t1.map((t) => t.id === change.id ? change : t)
+                      : t1
+                    const bookings = remove
+                      ? t2.filter((t) => t.id !== remove.id)
+                      : t2
+                    return {thang: {...prev.thang, bookings}}
+                  }
+                })
+              }
+              now={now}
+              offset={from}
+              thang={this.props.thang}
+              bookings={data && data.thang ? data.thang.bookings : null} />
+          )}
         </Query>
       </Table>
     )
   }
 }
 
-export default BookingTable
+export default ({thang, timezone}: { thang: string, timezone: string }) => (
+  <EmailVerifiedCheck>
+    {(d) => (
+      <BookingTable thang={thang} timezone={timezone} me={(d && d.id) || null} active={!!d && d.emailVerified} />
+    )}
+  </EmailVerifiedCheck>
+)

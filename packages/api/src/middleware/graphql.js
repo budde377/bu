@@ -3,17 +3,18 @@ import schema from '../graphql/schema'
 import KoaRouter from 'koa-router'
 import { cachedTokenToUser } from '../auth'
 import compose from 'koa-compose'
+import type { Context } from '../graphql/schema'
 
 const router = new KoaRouter()
 
-async function ctxToContext (ctx) {
+async function ctxToContext (ctx): Context {
   const authHeader = ctx.request.header.authentication
   if (!authHeader || !/Bearer .+/.exec(authHeader)) {
     return {}
   }
   const token = authHeader.substr(7).trim()
-  const currentUser = await cachedTokenToUser(token)
-  return {currentUser}
+  const userProfile = await cachedTokenToUser(token)
+  return {userProfile}
 }
 
 router.post('/graphql', async (ctx, next) => graphqlKoa({

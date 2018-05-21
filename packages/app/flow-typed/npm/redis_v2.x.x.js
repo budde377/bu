@@ -1,5 +1,5 @@
-// flow-typed signature: e8c17d9b50ca24293a9bd00a8aa54f9e
-// flow-typed version: a80cb215a2/redis_v2.x.x/flow_>=v0.34.x
+// flow-typed signature: 0b754fcfd79eda200cc4fc301ca464e7
+// flow-typed version: 5151ea5d3c/redis_v2.x.x/flow_>=v0.34.x
 
 /* This module definition is by no means complete. A lot of methods of the RedisClient class are missing */
 
@@ -108,6 +108,7 @@ declare type $npm$redis$DelF = $npm$redis$DelWithArrayKeys
 
 declare module "redis" {
   declare class RedisClient extends events$EventEmitter mixins RedisClientPromisified {
+    connected: boolean,
     hmset: (
       key: string,
       map: {[key: string]: string},

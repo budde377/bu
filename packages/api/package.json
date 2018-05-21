@@ -13,7 +13,7 @@
     "test:helm": "helm lint ./helm/*",
     "test": "npm run test:helm && npm run test:lint && npm run test:flow && npm run test:jest",
     "dev": "nodemon --exec babel-node src",
-    "deploy:helm": "helm upgrade -i --wait --timeout 300 --set image.tag=${VERSION:-latest} thang-api helm/api",
+    "deploy:helm": "helm upgrade -i --wait --timeout 300 --set image.tag=${VERSION:-latest} --set auth.management.clientId=${AUTH_MANAGEMENT_CLIENT_ID:?Please set client id} --set auth.management.clientSecret=${AUTH_MANAGEMENT_CLIENT_SECRET:?Please set client secret} thang-api helm/api",
     "deploy": "npm run build:docker && npm run publish:docker && npm run deploy:helm"
   },
   "jest": {

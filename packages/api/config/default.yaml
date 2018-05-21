@@ -14,6 +14,11 @@ auth:
     strictSsl: true
     jwksUri: https://thang.eu.auth0.com/.well-known/jwks.json
   userInfoUrl: https://thang.eu.auth0.com/userinfo
+  management:
+    audience: https://thang.eu.auth0.com/api/v2/
+    domain: thang.eu.auth0.com
+    clientId: id
+    clientSecret: secret
   cache:
     max: 3000
 

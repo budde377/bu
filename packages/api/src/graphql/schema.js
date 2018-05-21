@@ -31,6 +31,8 @@ import type { Dt, Thang } from '../db'
 // $FlowFixMe Its OK flow... Good boy.
 import typeDefs from '../../graphql/schema.graphqls'
 import { dtToTimestamp } from '../util/dt'
+import * as auth from '../auth'
+import type { UserProfile } from '../auth'
 
 export type CustomErrorCode =
   'USER_NOT_LOGGED_IN'
@@ -40,9 +42,13 @@ export type CustomErrorCode =
   | 'INSUFFICIENT_PERMISSIONS'
   | 'DUPLICATE'
 
-function checkEmail (f: (ctx: *, arg: *) => *, defaultValue = null) {
-  return (ctx, arg, {currentUser}) => currentUser && currentUser.email === ctx.email
-    ? f(ctx, arg)
+export type Context = {|
+  userProfile: ?UserProfile
+|}
+
+function checkEmail (f: (ctx: *, arg: *, userProfile: UserProfile) => *, defaultValue = null) {
+  return (ctx, arg, {userProfile}: Context) => userProfile && userProfile.user.email === ctx.email
+    ? f(ctx, arg, userProfile)
     : defaultValue
 }
 
@@ -73,18 +79,18 @@ function resolve (change) {
   }
 }
 
-function checkUserLoggedIn (f) {
-  return (ctx, args, wat) => {
-    if (!wat.currentUser) {
+function checkUserLoggedIn (f: (ctx: *, args: *, profile: UserProfile) => *) {
+  return (ctx, args, wat: Context) => {
+    if (!wat.userProfile) {
       throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
     }
-    return f(ctx, args, wat)
+    return f(ctx, args, wat.userProfile)
   }
 }
 
-function checkEmailVerified (f) {
-  return checkUserLoggedIn((ctx, args, wat) => {
-    if (!wat.currentUser.emailVerified) {
+function checkEmailVerified (f: (ctx: *, args: *, profile: UserProfile) => *) {
+  return checkUserLoggedIn((ctx, args, wat: UserProfile) => {
+    if (!wat.profile.emailVerified) {
       throw new CustomError('User email is not verified', 'USER_EMAIL_NOT_VERIFIED')
     }
     return f(ctx, args, wat)
@@ -158,17 +164,17 @@ const resolvers = {
     },
     myThangsChange: {
       resolve,
-      subscribe: (ctx, args, {currentUser}) => {
-        if (!currentUser) {
+      subscribe: (ctx, args, {userProfile}: Context) => {
+        if (!userProfile) {
           throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
         }
-        return userThangChanges(currentUser.email)
+        return userThangChanges(userProfile.user.email)
       }
     },
     thangChange: {
       resolve,
-      subscribe: (ctx, {thang}, {currentUser}) => {
-        if (!currentUser) {
+      subscribe: (ctx, {thang}, {userProfile}: Context) => {
+        if (!userProfile) {
           throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
         }
         return thangChange(thang)
@@ -196,8 +202,8 @@ const resolvers = {
       }
       return null
     },
-    me (ctx, args, {currentUser}) {
-      return currentUser && user(currentUser.email)
+    me (ctx, args, {userProfile}: Context) {
+      return userProfile && user(userProfile.user.email)
     }
   },
 
@@ -205,7 +211,7 @@ const resolvers = {
     thangs: checkEmail(({email}) => userThangs(email), []),
     collections: checkEmail(({email}) => userCollections(email), []),
     email: checkEmail(({email}) => email),
-    emailVerified: checkEmail(({emailVerified}) => emailVerified),
+    emailVerified: checkEmail((c, a, {profile}) => profile.emailVerified),
     timezone: checkEmail(({timezone}) => timezone),
     name: checkEmail(({name}) => name),
     nickname: checkEmail(({nickname}) => nickname),
@@ -254,7 +260,7 @@ const resolvers = {
   },
   Mutation: {
     createBooking:
-      checkEmailVerified(async (ctx, args, {currentUser}) => {
+      checkEmailVerified(async (ctx, args, {user}: UserProfile) => {
         const t = await validateThang(args.thang)
         const {fromTimestamp, toTimestamp} = validateDt(args.from, args.to)
         await validateExpired(t, args.from)
@@ -264,84 +270,91 @@ const resolvers = {
           to: args.to,
           fromTime: new Date(fromTimestamp),
           toTime: new Date(toTimestamp),
-          owner: currentUser.email,
+          owner: user.email,
           thang: args.thang
         })
-        await thangAddUser(args.thang, currentUser.email)
+        await thangAddUser(args.thang, user.email)
         return booking(id)
       }),
+    sendVerificationEmail:
+      async (ctx, args, {userProfile}: Context) => {
+        if (!userProfile || userProfile.profile.emailVerified) {
+          return {sent: 0}
+        }
+        return auth.sendVerificationEmail(userProfile.profile.userId)
+      },
     createThang:
-      checkEmailVerified(async (ctx, args, {currentUser}) => {
-        const timezone = args.timezone || currentUser.timezone
+      checkEmailVerified(async (ctx, args, {user}: UserProfile) => {
+        const timezone = args.timezone || user.timezone
         validateTimezone(timezone)
         validateName(args.name)
         const id = await createThang({
           name: args.name,
-          owners: [currentUser.email],
-          users: [currentUser.email],
+          owners: [user.email],
+          users: [user.email],
           collection: null,
           timezone
         })
         return thang(id)
       }),
     createThangCollection:
-      checkEmailVerified(async (ctx, args, {currentUser}) => {
+      checkEmailVerified(async (ctx, args, {user}: UserProfile) => {
         validateName(args.name)
         const id = await createThangCollection({
           name: args.name,
-          owners: [currentUser.email]
+          owners: [user.email]
         })
         return thangCollection(id)
       }),
     deleteBooking:
-      checkEmailVerified(async (ctx, {id}, {currentUser}) => {
+      checkEmailVerified(async (ctx, {id}, {user}: UserProfile) => {
         const b = await booking(id)
         if (!b) {
           return {deleted: 0}
         }
-        if (b.owner === currentUser.email) {
+        if (b.owner === user.email) {
           const deleted = await deleteBooking(id)
           return {deleted}
         }
         const t = await thang(b.thang)
-        if (t && t.owners.indexOf(currentUser.email) >= 0) {
+        if (t && t.owners.indexOf(user.email) >= 0) {
           const deleted = await deleteBooking(id)
           return {deleted}
         }
         throw new CustomError(
-          `User with id ${currentUser.id} can't delete booking with id ${id}`,
+          `User with id ${user.id} can't delete booking with id ${id}`,
           'INSUFFICIENT_PERMISSIONS')
       }),
     deleteThang:
-      checkEmailVerified(async (ctx, {id}, {currentUser}) => {
+      checkEmailVerified(async (ctx, {id}, {user}: UserProfile) => {
         const t = await thang(id)
         if (!t) {
           return {deleted: 0}
         }
-        if (t.owners.indexOf(currentUser.email) < 0) {
+        if (t.owners.indexOf(user.email) < 0) {
           throw new CustomError(
-            `User with id ${currentUser.id} can't delete thang with id ${id}`,
+            `User with id ${user.id} can't delete thang with id ${id}`,
             'INSUFFICIENT_PERMISSIONS')
         }
         return {deleted: await deleteThang(id)}
       }),
     deleteThangCollection:
-      checkEmailVerified(async (ctx, {id}, {currentUser}) => {
+      checkEmailVerified(async (ctx, {id}, {user}: UserProfile) => {
         const t = await thangCollection(id)
         if (!t) {
           return {deleted: 0}
         }
-        if (t.owners.indexOf(currentUser.email) < 0) {
+        if (t.owners.indexOf(user.email) < 0) {
           throw new CustomError(
-            `User with id ${currentUser.id} can't delete thang with id ${id}`,
+            `User with id ${user.id} can't delete thang with id ${id}`,
             'INSUFFICIENT_PERMISSIONS')
         }
         return {deleted: await deleteThangCollection(id)}
       }),
     visitThang:
-      checkUserLoggedIn(async (ctx, {id}, {currentUser}) => {
+      checkUserLoggedIn(async (ctx, {id}, {user}: UserProfile) => {
         await validateThang(id)
-        const eId = await createVisitLogEntry(id, currentUser.email)
+        const eId = await createVisitLogEntry(id, user.email)
         return visitLogEntry(eId)
       })
   }

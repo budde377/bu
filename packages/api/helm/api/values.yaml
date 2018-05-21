@@ -45,3 +45,8 @@ affinity: {}
 
 rethink:
   host: rethinkdb-rethinkdb-proxy.rethinkdb.svc.cluster.local
+
+auth:
+  management:
+    clientId: clientid
+    clientSecret: clientsecret

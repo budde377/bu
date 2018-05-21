@@ -1,7 +1,7 @@
 // @flow
 
-import React from 'react'
-import { withRouter } from 'react-router'
+import React, { Fragment } from 'react'
+import { type ContextRouter, withRouter } from 'react-router'
 import { Query, type QueryRenderProps } from 'react-apollo'
 import BookingTable from './BookingTable'
 import { FormattedMessage } from 'react-intl'
@@ -11,16 +11,16 @@ import Logo from '../Logo'
 import { H1 } from '../styled/Header'
 import { Container, Top } from '../styled/Thang'
 import { Helmet } from 'react-helmet'
-import GET_THANG_USERS from '../../../graphql/getThangUsers.graphql'
-import SUBSCRIBE_THANG_USERS from '../../../graphql/subscribeThangUsers.graphql'
-import type { getThangUsersQuery, getThangUsersQueryVariables } from '../../../graphql'
+import GET_THANG from '../../../graphql/getThang.graphql'
+import SUBSCRIBE_THANG from '../../../graphql/subscribeThang.graphql'
+import type { getThangQuery, getThangQueryVariables } from '../../../graphql'
 
-class BaseThang extends React.Component<*> {
+class BaseThang extends React.Component<ContextRouter> {
   render () {
     return (
       <Container>
-        <Query query={GET_THANG_USERS} variables={{id: this.props.match.params.id}}>
-          {({loading, error, data, subscribeToMore}: QueryRenderProps<getThangUsersQuery, getThangUsersQueryVariables>) => {
+        <Query query={GET_THANG} variables={{id: this.props.match.params.id || ''}}>
+          {({loading, error, data, subscribeToMore}: QueryRenderProps<getThangQuery, getThangQueryVariables>) => {
             if (loading) {
               return (
                 <div style={{width: '5em', margin: 'auto', paddingTop: '10%'}}>
@@ -42,8 +42,8 @@ class BaseThang extends React.Component<*> {
               )
             }
             const subscribe = () => subscribeToMore({
-              document: SUBSCRIBE_THANG_USERS,
-              variables: {id: this.props.thang},
+              document: SUBSCRIBE_THANG,
+              variables: {id: this.props.match.params.id || ''},
               updateQuery: (prev, {subscriptionData}) => {
                 if (!subscriptionData.data) return prev
                 const {thangChange: {change}} = subscriptionData.data
@@ -53,21 +53,23 @@ class BaseThang extends React.Component<*> {
                 return change
               }
             })
-            return [
-              <Top key={'header'}>
-                <Helmet>
-                  <title>
+            return (
+              <Fragment>
+                <Top>
+                  <Helmet>
+                    <title>
+                      {thang.name}
+                    </title>
+                  </Helmet>
+                  <H1>
                     {thang.name}
-                  </title>
-                </Helmet>
-                <H1>
-                  {thang.name}
-                  <OnMount f={subscribe} />
-                  <LogVisit thang={thang.id} />
-                </H1>
-              </Top>,
-              <BookingTable thang={thang.id} timezone={thang.timezone} key={'table'} />
-            ]
+                    <OnMount f={subscribe} />
+                    <LogVisit thang={thang.id} />
+                  </H1>
+                </Top>
+                <BookingTable thang={thang.id} timezone={thang.timezone} />
+              </Fragment>
+            )
           }}
         </Query>
       </Container>

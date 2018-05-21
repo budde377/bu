@@ -23,7 +23,4 @@ query getBookings($thang: ID!, $from: DateTimeInput!, $to: DateTimeInput!) {
             }
         }
     }
-    me {
-        id
-    }
 }

@@ -1,7 +1,7 @@
 // @flow
 
 import React from 'react'
-import { Mutation, type MutationFunction, type MutationResult } from 'react-apollo'
+import { Mutation, type MutationFunction } from 'react-apollo'
 import { injectIntl, FormattedMessage } from 'react-intl'
 import type { InjectIntlProvidedProps } from 'react-intl'
 import { Hint, Form, Input, Label } from './styled/Form'
@@ -20,7 +20,7 @@ class CreateThang extends React.Component<{ onCreate: (id: string) => mixed } & 
       return
     }
     const r = await createThang({variables: {name: this.state.name}})
-    if (!r.data) {
+    if (!r || !r.data) {
       return
     }
     this.props.onCreate(r.data.createThang.id)
@@ -29,7 +29,7 @@ class CreateThang extends React.Component<{ onCreate: (id: string) => mixed } & 
   render () {
     return (
       <Mutation mutation={CREATE_THANG}>
-        {(createThang: MutationFunction<createThangMutationVariables>, {data, loading}: MutationResult<createThangMutation>) => (
+        {(createThang: MutationFunction<createThangMutation, createThangMutationVariables>) => (
           <Form onSubmit={this._onSubmit(createThang)}>
             <Label>
               <Hint show={this.state.submitted && !this.state.name.trim()}>
