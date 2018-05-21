@@ -3,11 +3,11 @@ import jwksClient from 'jwks-rsa'
 import jwt from 'jsonwebtoken'
 import jwkToPem from 'jwk-to-pem'
 import fetch from 'node-fetch'
-import type { Picture, User } from '../db'
-import * as db from '../db'
+import type { Picture, User } from './db/index'
+import * as db from './db/index'
 import LRU from 'lru-cache'
 import config from 'config'
-import { logError } from '../util/error'
+import { logError } from './util/error'
 
 const uuidv4 = require('uuid/v4')
 
