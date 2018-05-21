@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Status from './Status'
-import { H1 } from './styled/Header'
+import { H1 } from './styled/BuildingBlocks'
 
 export default () => (
   <div>

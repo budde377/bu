@@ -1,5 +1,5 @@
 import styled from 'styled-components'
-import { H1 } from './Header'
+import { H1 } from './BuildingBlocks'
 import { Table } from './BookinTable'
 
 export const Container = styled.div`
@@ -23,4 +23,7 @@ export const Container = styled.div`
 
 export const Top = styled.div`
   padding-bottom: 2em;
+  ${H1} {
+    padding: 1em 2rem 0;
+  }
 `

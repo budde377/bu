@@ -3,7 +3,7 @@
 import styled from 'styled-components'
 import { Link, NavLink } from 'react-router-dom'
 import { Avatar } from './User'
-import { H1 } from './Header'
+import { H1, H2, Text } from './BuildingBlocks'
 
 export const LogoLink = styled(Link)`
   height: 2rem;
@@ -32,23 +32,26 @@ export const ContentContainer = styled.div`
   flex-shrink: 1;
 `
 
+export const LeftLinkSecondaryMenuOverlay = styled.div`
+  position: absolute;
+  left: 1em;
+  width: 3em;
+`
+
+export const RightLinkSecondaryMenuOverlay = styled.div`
+  position: absolute;
+  right: 1em;
+  width: 3em;
+`
+
 export const SecondaryMenuOverlay = styled.div`
   width: calc(100% - 2em);
   position: absolute;
   padding: 1em;
-  top: 5rem;
-  display: ${({open}) => open ? 'block' : 'none'};
+  top: 0;
+  bottom: 0;
+  opacity: 0;
   transition: 100ms opacity;
-  background: #F7F7F7;
-  border-bottom: 0.1em solid #aaa;
-  &:before {
-    content: '';
-    position: absolute;
-    border: 0.5em solid #d6d6d6;
-    top: -1em;
-    left: calc(50% - 0.5em);
-    border-color: transparent transparent #F7F7F7 transparent;
-  }
 `
 
 export const MenuContainer = styled.div`
@@ -69,12 +72,13 @@ export const Menu = styled.nav`
 export const AvatarContainer = styled.div`
   width: 20rem;
   height: 5rem;
-  cursor: pointer;
   position: relative;
   overflow: hidden;
   flex-grow: 0;
   flex-shrink: 0;
-
+  &:hover ${SecondaryMenuOverlay} {
+    opacity: 1;
+  }
   :before {
     content: "";
     position: absolute;
@@ -112,8 +116,14 @@ export const SecondaryContent = styled.div`
   flex-grow: 1;
   flex-shrink: 1;
   position: relative;
-  ${H1} {
+  > ${H1}, > ${H2} {
     padding: 1em 2rem 0;
+  }
+  > ${H2} {
+    font-size: 1.5em;
+  }
+  > ${Text} {
+    padding: 1em 2rem;
   }
 `
 

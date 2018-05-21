@@ -3,7 +3,8 @@ import React from 'react'
 import { Query, type QueryRenderProps } from 'react-apollo'
 import { Redirect, Route, Switch } from 'react-router'
 import Thang from './thang'
-import { addLocaleData, FormattedMessage, IntlProvider } from 'react-intl'
+import SettingsApp from './settings'
+import { addLocaleData, IntlProvider } from 'react-intl'
 import englishLocaleData from 'react-intl/locale-data/en'
 import messages from '../../locale/en.json'
 import { hot } from 'react-hot-loader'
@@ -16,13 +17,15 @@ import {
   Menu,
   MenuContainer,
   ContentContainer,
-  AvatarContainer, SecondaryMenuOverlay
+  AvatarContainer,
+  SecondaryMenuOverlay,
+  RightLinkSecondaryMenuOverlay, LeftLinkSecondaryMenuOverlay
 } from './styled/Menu'
 import { Avatar } from './styled/User'
 import { Helmet } from 'react-helmet'
 import ThangSelectMenu from './ThangSelectMenu'
-import { A as Button } from './styled/Button'
-import { LogOut } from './styled/Icon'
+import { A as Button, NavLink as ButtonNavLink } from './styled/Button'
+import { LogOut, Settings } from './styled/Icon'
 import GET_ME from '../../graphql/getMe.graphql'
 import type { getMeQuery } from '../../graphql'
 
@@ -34,24 +37,25 @@ type User = {
   displayName: string
 }
 
-class SecondaryMenu extends React.Component<{ user: User }, { open: boolean }> {
-  state = {
-    open: false
-  }
-  _toggleUserMenu = () => this.setState(({open}) => ({open: !open}))
-
+class SecondaryMenu extends React.Component<{ user: User }> {
   render () {
     return (
       <MenuContainer>
-        <AvatarContainer backgroundImage={this.props.user.picture} onClick={this._toggleUserMenu}>
+        <AvatarContainer backgroundImage={this.props.user.picture}>
           <Avatar picture={this.props.user.picture} />
+          <SecondaryMenuOverlay>
+            <LeftLinkSecondaryMenuOverlay>
+              <ButtonNavLink fluid to={'/settings'}>
+                <Settings />
+              </ButtonNavLink>
+            </LeftLinkSecondaryMenuOverlay>
+            <RightLinkSecondaryMenuOverlay>
+              <Button href={'/auth/logout'} fluid color={'red'}>
+                <LogOut />
+              </Button>
+            </RightLinkSecondaryMenuOverlay>
+          </SecondaryMenuOverlay>
         </AvatarContainer>
-        <SecondaryMenuOverlay open={this.state.open}>
-          <Button href={'/auth/logout'} fluid color={'red'}>
-            <LogOut />
-            <FormattedMessage id={'logout'} />
-          </Button>
-        </SecondaryMenuOverlay>
         <ThangSelectMenu />
       </MenuContainer>
     )
@@ -70,6 +74,7 @@ const LoggedInApp = ({user}: { user: User }) => (
         </LogoLink>
       </Menu>
       <Switch>
+        <Route path={'/settings'} component={SettingsApp} />
         <Route path={'/thangs'} component={Thang} />
         <Redirect from={'/'} to={'/thangs'} exact />
         <Route component={NotFoundApp} />

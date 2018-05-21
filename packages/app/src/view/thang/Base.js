@@ -1,17 +1,17 @@
 // @flow
 
-import React from 'react'
+import React, { Fragment } from 'react'
 import { FormattedMessage } from 'react-intl'
-import { H1 } from '../styled/Header'
+import { H1, Text } from '../styled/BuildingBlocks'
 
 const BaseThang = () => (
-  <div>
+  <Fragment>
     <H1>
       <FormattedMessage id={'baseThang.header'} />
     </H1>
-    <p>
+    <Text>
       <FormattedMessage id={'baseThang.description'} />
-    </p>
-  </div>)
+    </Text>
+  </Fragment>)
 
 export default BaseThang

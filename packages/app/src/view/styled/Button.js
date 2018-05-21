@@ -2,6 +2,7 @@
 
 import styled from 'styled-components'
 import { Icon } from './Icon'
+import { NavLink as NavLinkE } from 'react-router-dom'
 
 const themeColors = {
   grey: {
@@ -31,13 +32,13 @@ const themeColors = {
   },
   red: {
     std: {
-      background: '#ba513c',
+      background: '#ba424d',
       color: '#fff',
-      border: '#ba3236',
+      border: '#ba2842',
       fill: '#fff'
     },
     hover: {
-      background: '#ba501a'
+      background: '#ba2123'
     }
   }
 }
@@ -89,3 +90,5 @@ export const Button = styled.button`
 `
 
 export const A = Button.withComponent('a')
+
+export const NavLink = Button.withComponent(NavLinkE)

@@ -1,7 +1,7 @@
 // @flow
 
 import styled from 'styled-components'
-import { H1 } from './Header'
+import { H1 } from './BuildingBlocks'
 import { Form } from './Form'
 import { Icon } from './Icon'
 

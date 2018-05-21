@@ -23,5 +23,15 @@
   "thangView.error": "Something went wrong",
   "thangView.notFound": "Thang not found",
   "baseThang.header": "Select a thang",
-  "baseThang.description": "Select a thang in the menu on the left to start booking!"
+  "baseThang.description": "Select a thang in the menu on the left to start booking!",
+  "Settings.header": "Settings",
+  "Settings.text": "Update your personal settings below.",
+  "Settings.emailVerification.header": "Verify your email address",
+  "Settings.emailVerification.message": "In order to create bookings or thangs, you must be logged in with a verified e-mail account.",
+  "Settings.changeTimezone.header": "Change your timezone",
+  "Settings.changeTimezone.message": "By changing your timezone we'll be able to create a better user experience.",
+  "Settings.changePassword.header": "Change your password",
+  "Settings.changePassword.message": "Have you forgotten your e-mail address? Start password reset below.",
+  "Settings.deleteAccount.header": "Delete your account",
+  "Settings.deleteAccount.message": "Are you tired of using thang? You can delete your account here."
 }
