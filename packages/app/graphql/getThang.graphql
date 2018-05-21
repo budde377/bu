@@ -1,4 +1,4 @@
-query getThangUsers($id: ID!){
+query getThang($id: ID!){
     thang(id: $id) {
         id
         name
