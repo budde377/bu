@@ -1,5 +1,5 @@
 // @flow
-
+import React from 'react'
 import styled from 'styled-components'
 import { Icon } from './Icon'
 import { NavLink as NavLinkE } from 'react-router-dom'
@@ -91,4 +91,4 @@ export const Button = styled.button`
 
 export const A = Button.withComponent('a')
 
-export const NavLink = Button.withComponent(NavLinkE)
+export const NavLink = Button.withComponent(({fluid, ...rest}) => <NavLinkE {...rest} />)

@@ -1,0 +1,24 @@
+{
+  "title": "JSON schema for Collections model",
+  "bsonType": "object",
+  "required": [
+    "_id",
+    "name",
+    "owners"
+  ],
+  "properties": {
+    "_id": {
+      "bsonType": "objectId"
+    },
+    "name": {
+      "bsonType": "string"
+    },
+    "owners": {
+      "bsonType": "array",
+      "items": {
+        "bsonType": "objectId"
+      }
+    }
+  },
+  "additionalProperties": false
+}

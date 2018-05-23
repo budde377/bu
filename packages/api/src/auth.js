@@ -3,13 +3,10 @@ import jwksClient from 'jwks-rsa'
 import jwt from 'jsonwebtoken'
 import jwkToPem from 'jwk-to-pem'
 import fetch from 'node-fetch'
-import type { Picture, User } from './db/index'
-import * as db from './db/index'
 import LRU from 'lru-cache'
 import config from 'config'
 import { logError } from './util/error'
-
-const uuidv4 = require('uuid/v4')
+import type Db, { Profile, Picture, User, ID } from './db'
 
 const cache = LRU(config.auth.cache)
 
@@ -37,17 +34,6 @@ function getKey () {
     })
   })
 }
-
-export type Profile = {|
-  name: string,
-  nickname: string,
-  picture: ?Picture,
-  userId: string,
-  email: string,
-  emailVerified: boolean,
-  givenName: ?string,
-  familyName: ?string
-|}
 
 export type UserProfile = {|
   user: User,
@@ -127,7 +113,7 @@ export async function fetchManagementToken (): Promise<?string> {
   return token
 }
 
-export async function sendVerificationEmail (userId: string): Promise<{| sent: 0 | 1 |}> {
+export async function sendVerificationEmail (userId: string): Promise<{| sent: number |}> {
   const token = await fetchManagementToken()
   if (!token) {
     return {sent: 0}
@@ -141,6 +127,38 @@ export async function sendVerificationEmail (userId: string): Promise<{| sent: 0
       },
       method: 'post',
       body: JSON.stringify({user_id: userId})
+    }
+  )
+  return {sent: res.ok ? 1 : 0}
+}
+
+export async function deleteUser (userId: string): Promise<{| deleted: 0 | 1 |}> {
+  const token = await fetchManagementToken()
+  if (!token) {
+    return {deleted: 0}
+  }
+  const res = await fetch(
+    `https://thang.eu.auth0.com/api/v2/users/${encodeURIComponent(userId)}`,
+    {
+      method: 'DELETE'
+    }
+  )
+  return {deleted: res.ok ? 1 : 0}
+}
+
+export async function resetPasswordEmail (email: string): Promise<{| sent: number |}> {
+  const res = await fetch(
+    'https://thang.eu.auth0.com/dbconnections/change_password',
+    {
+      headers: {
+        'content-type': 'application/json'
+      },
+      method: 'POST',
+      body: JSON.stringify({
+        client_id: config.get('auth.management.clientId'),
+        email,
+        connection: 'Username-Password-Authentication'
+      })
     }
   )
   return {sent: res.ok ? 1 : 0}
@@ -195,48 +213,47 @@ async function fetchProfile (token: string): Promise<?Profile> {
   }
 }
 
-async function createOrUpdateUser (profile: Profile): Promise<string> {
-  const u = await db.user(profile.email)
+async function createOrUpdateUser (db: Db, profile: Profile): Promise<ID> {
+  const u = await db.userFromEmail(profile.email)
   if (u && profile.email === profile.name) {
-    return u.id
+    return u._id
   }
   if (u) {
-    await db.updateUser(u.email, profile)
-    return u.id
+    await db.updateUser(u._id, {profile})
+    return u._id
   }
   const timezone = config.defaultTimezone
-  const id = uuidv4()
-  await db.createUser({...profile, id, timezone})
+  const id = await db.createUser({profile, timezone, familyName: null, givenName: null, email: profile.email})
   return id
 }
 
-export async function tokenToUser (token: string): Promise<?UserProfile> {
+export async function tokenToUser (db: Db, token: string): Promise<?UserProfile> {
   // Validate token
   const valid = await verify(token)
   if (!valid) {
     return null
   }
   // Fetch external profile
-  const profile = await cachedFetchProfile(token)
+  const profile: ?Profile = await cachedFetchProfile(token)
   if (!profile) {
     return null
   }
   // Create or update the user
-  await createOrUpdateUser(profile)
+  await createOrUpdateUser(db, profile)
   // If the email was verified is relative to the token
-  const user = await db.user(profile.email)
+  const user = await db.userFromEmail(profile.email)
   if (!user) {
     return null
   }
   return {user, profile}
 }
 
-export async function cachedTokenToUser (token: string): Promise<?UserProfile> {
+export async function cachedTokenToUser (db: Db, token: string): Promise<?UserProfile> {
   const cached = cache.get(token)
   if (cached) {
     return cached
   }
-  const user = await tokenToUser(token)
+  const user = await tokenToUser(db, token)
   if (!user) {
     return user
   }

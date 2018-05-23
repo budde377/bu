@@ -1,20 +1,22 @@
+// @flow
 import { graphiqlKoa, graphqlKoa } from 'apollo-server-koa'
 import schema from '../graphql/schema'
 import KoaRouter from 'koa-router'
 import { cachedTokenToUser } from '../auth'
 import compose from 'koa-compose'
 import type { Context } from '../graphql/schema'
+import Db from '../db'
 
 const router = new KoaRouter()
 
-async function ctxToContext (ctx): Context {
+async function ctxToContext (ctx): Promise<Context> {
   const authHeader = ctx.request.header.authentication
   if (!authHeader || !/Bearer .+/.exec(authHeader)) {
-    return {}
+    return {userProfile: null, db: new Db()}
   }
   const token = authHeader.substr(7).trim()
   const userProfile = await cachedTokenToUser(token)
-  return {userProfile}
+  return {userProfile, db: new Db()}
 }
 
 router.post('/graphql', async (ctx, next) => graphqlKoa({

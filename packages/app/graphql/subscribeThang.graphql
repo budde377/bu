@@ -1,4 +1,4 @@
-subscription subscribeThangUsers($id: ID!) {
+subscription subscribeThang($id: ID!) {
     thangChange(thang: $id) {
         change {
             id

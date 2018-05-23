@@ -1,9 +1,8 @@
 port: 3000
 
-rethink:
-  db: thang
-  host: localhost
-
+mongo:
+  url: mongodb://localhost:27017/?replicaSet=rs0
+  replicaSet: rs0
 auth:
   verify:
     algorithms:

@@ -1,3 +1,2 @@
-
-rethink:
-  db: test
+mongo:
+  url: mongodb://localhost:27017/
