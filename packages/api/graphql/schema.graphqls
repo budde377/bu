@@ -52,8 +52,8 @@ type Booking {
     id: ID!
     from: DateTime!
     to: DateTime!
-    owner: User!
-    thang: Thang!
+    owner: User
+    thang: Thang
 }
 type Query {
     thang(id: ID!): Thang
@@ -67,8 +67,8 @@ type DeleteResult {
 
 type VisitLogEntry {
     id: ID!
-    thang: Thang!
-    user: User!
+    thang: Thang
+    user: User
 }
 
 type SentResult {

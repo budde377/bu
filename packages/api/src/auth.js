@@ -223,8 +223,14 @@ async function createOrUpdateUser (db: Db, profile: Profile): Promise<ID> {
     return u._id
   }
   const timezone = config.defaultTimezone
-  const id = await db.createUser({profile, timezone, familyName: null, givenName: null, email: profile.email})
-  return id
+  return await db.createUser({
+    profile,
+    timezone,
+    familyName: null,
+    givenName: null,
+    email: profile.email,
+    deleted: false
+  })
 }
 
 export async function tokenToUser (db: Db, token: string): Promise<?UserProfile> {

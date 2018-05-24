@@ -1,3 +1,0 @@
-cluster:
-  persistentVolume:
-    size: 10Gi

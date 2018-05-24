@@ -18,6 +18,9 @@
       "items": {
         "bsonType": "objectId"
       }
+    },
+    "deleted": {
+      "bsonType": "bool"
     }
   },
   "additionalProperties": false

@@ -10,13 +10,13 @@
     ]
   ],
   "presets": [
-    "flow",
-    "stage-0",
+    "@babel/preset-flow",
+    ["@babel/preset-stage-0", { "decoratorsLegacy": true }],
     [
-      "env",
+      "@babel/preset-env",
       {
         "targets": {
-          "node": 9
+          "node": 10
         }
       }
     ]

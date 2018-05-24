@@ -15,7 +15,7 @@ async function ctxToContext (ctx): Promise<Context> {
     return {userProfile: null, db: new Db()}
   }
   const token = authHeader.substr(7).trim()
-  const userProfile = await cachedTokenToUser(token)
+  const userProfile = await cachedTokenToUser(ctx.db, token)
   return {userProfile, db: new Db()}
 }
 

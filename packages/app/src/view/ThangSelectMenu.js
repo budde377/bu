@@ -1,7 +1,7 @@
 // @flow
 import React, { Fragment } from 'react'
 import { FormattedMessage } from 'react-intl'
-import { Mutation, Query, type QueryRenderProps, type MutationFunction } from 'react-apollo'
+import { Mutation, Query, type QueryRenderProps, type MutationFunction, type SubscribeToMoreOptions } from 'react-apollo'
 import { MenuLink, Empty, Item, Items, SecondaryMenu } from './styled/Menu'
 import { H1 } from './styled/BuildingBlocks'
 import { Button } from './styled/Button'
@@ -13,7 +13,12 @@ import SUBSCRIBE_THANGS from '../../graphql/subscribeThangs.graphql'
 import SEND_VERIFICATION_EMAIL from '../../graphql/sendVerificationEmail.graphql'
 import CreateThang from './CreateThang'
 import { withRouter } from 'react-router'
-import type { getThangsQuery, sendVerificationEmailMutation } from '../../graphql'
+import type {
+  getThangsQuery,
+  sendVerificationEmailMutation,
+  subscribeThangsSubscription,
+  subscribeThangSubscriptionVariables
+} from '../../graphql'
 import EmailVerifiedCheck from './EmailVerifiedCheck'
 import { Header, Message, Notion } from './styled/Notion'
 
@@ -53,29 +58,32 @@ class ListThangs extends React.Component<{}> {
           if (loading || !me) {
             return null
           }
+          const options: SubscribeToMoreOptions<getThangsQuery, subscribeThangsSubscription, subscribeThangSubscriptionVariables> = (
+            {
+              document: SUBSCRIBE_THANGS,
+              updateQuery: (prev, {subscriptionData}) => {
+                if (!subscriptionData.data) return prev
+                const {myThangsChange: {add, update, remove}} = subscriptionData.data
+                if (!prev.me) {
+                  return prev
+                }
+                const oldThangs = prev.me.thangs
+                const tThangs1 = add
+                  ? [...oldThangs, add]
+                  : oldThangs
+                const tThangs2 = update
+                  ? tThangs1.map((t) => t.id === update.id ? update : t)
+                  : tThangs1
+                const thangs = remove
+                  ? tThangs2.filter((t) => t.id !== remove)
+                  : tThangs2
+                return {me: {...prev.me, thangs}}
+              }
+            }
+          )
           return (
             <ThangList thangs={me.thangs} subscribe={() => {
-              subscribeToMore({
-                document: SUBSCRIBE_THANGS,
-                updateQuery: (prev, {subscriptionData}) => {
-                  if (!subscriptionData.data) return prev
-                  const {myThangsChange: {add, change, remove}} = subscriptionData.data
-                  if (!prev.me) {
-                    return prev
-                  }
-                  const oldThangs = prev.me.thangs
-                  const tThangs1 = add
-                    ? [...oldThangs, add]
-                    : oldThangs
-                  const tThangs2 = change
-                    ? tThangs1.map((t) => t.id === change.id ? change : t)
-                    : tThangs1
-                  const thangs = remove
-                    ? tThangs2.filter((t) => t.id !== remove.id)
-                    : tThangs2
-                  return {me: {...prev.me, thangs}}
-                }
-              })
+              subscribeToMore(options)
             }} />
           )
         }}

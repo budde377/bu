@@ -7,14 +7,18 @@ const router = new KoaRouter()
 
 function userPicture () {
   return async (ctx, next) => {
-    const id = ctx.params.id
-    const u = await ctx.db.user(id)
+    const id: string = ctx.params.id
+    const i = ctx.db.id(id)
+    if (!i) {
+      return next()
+    }
+    const u = await ctx.db.user(i)
     if (!u) {
       return next()
     }
     const {data, mime, fetched} = u.profile.picture || identiconFromString(u.email)
-    ctx.body = data
-    ctx.type = mime
+    ctx.response.body = data
+    ctx.response.type = mime
     ctx.set('ETag', fetched.toString())
   }
 }

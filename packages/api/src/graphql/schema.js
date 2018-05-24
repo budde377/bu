@@ -5,7 +5,7 @@ import moment from 'moment-timezone'
 import Db, { type Thang, type ID } from '../db'
 // $FlowFixMe Its OK flow... Good boy.
 import typeDefs from '../../graphql/schema.graphqls'
-import { dtToTimestamp } from '../util/dt'
+import { dtToTimestamp, timestampToDt } from '../util/dt'
 import * as auth from '../auth'
 import type { UserProfile } from '../auth'
 import type { Dt } from '../util/dt'
@@ -181,14 +181,16 @@ type Resolvers = {|
     me: Resolver<void, void, ?User>
   |},
   Subscription: {
-    bookingsChange: SubscriptionResolver<void, {thang: string, input: ?{from: Dt, to: Dt}}, Update<Booking>>,
+    bookingsChange: SubscriptionResolver<void, { thang: string, input: ?{ from: Dt, to: Dt } }, Update<Booking>>,
     myThangsChange: SubscriptionResolver<void, void, Update<Thang>>,
-    thangChange: SubscriptionResolver<void, {thang: string}, Update<Thang>>
+    thangChange: SubscriptionResolver<void, { thang: string }, Update<Thang>>
   },
   Booking: {|
     id: Resolver<Booking, void, string>,
     thang: Resolver<Booking, void, ?Thang>,
-    owner: Resolver<Booking, void, ?User>
+    owner: Resolver<Booking, void, ?User>,
+    from: Resolver<Booking, void, Dt>,
+    to: Resolver<Booking, void, Dt>
   |},
   User: {|
     id: Resolver<User, void, string>,
@@ -217,36 +219,45 @@ type Resolvers = {|
   |},
   VisitLogEntry: {|
     id: Resolver<VisitLogEntry, void, string>,
-    thang: Resolver<VisitLogEntry, void, Thang>,
-    user: Resolver<VisitLogEntry, void, User>
+    thang: Resolver<VisitLogEntry, void, ?Thang>,
+    user: Resolver<VisitLogEntry, void, ?User>
   |}
 |}
+
+async function* infinityIterator () {
+  await new Promise((resolve) => {})
+}
 
 const resolvers: Resolvers = {
   Subscription: {
     bookingsChange: {
       resolve,
-      subscribe: (ctx, {thang, input}, {db}: Context) => {
+      subscribe: (ctx, {thang, input}, {db}) => {
         const out = input ? validateDt(input.from, input.to) : null
-        return db.thangBookingChanges(thang, out ? {from: out.from, to: out.to} : null)
+        const i = db.id(thang)
+        if (!i) {
+          return infinityIterator()
+        }
+        return db.thangBookingChanges(i, out ? {from: out.from, to: out.to} : null)
       }
     },
     myThangsChange: {
       resolve,
-      subscribe: (ctx, args, {userProfile, db}: Context) => {
+      subscribe: (ctx, args, {userProfile, db}) => {
         if (!userProfile) {
           throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
         }
-        return db.userThangChanges(userProfile.user.email)
+        return db.userThangChanges(userProfile.user._id)
       }
     },
     thangChange: {
       resolve,
-      subscribe: (ctx, {thang}, {userProfile, db}: Context) => {
-        if (!userProfile) {
-          throw new CustomError('User not logged in', 'USER_NOT_LOGGED_IN')
+      subscribe: (ctx, {thang}, {db}) => {
+        const i = db.id(thang)
+        if (!i) {
+          return infinityIterator()
         }
-        return db.thangChange(thang)
+        return db.thangChange(i)
       }
     }
   },
@@ -257,7 +268,12 @@ const resolvers: Resolvers = {
     },
     async owner ({owner}, _, {db}) {
       return db.user(owner)
-    }
+    },
+    from: ({from}: {from: Date}) => {
+      const res = timestampToDt(from.getTime())
+      return res
+    },
+    to: ({to}: {to: Date}) => timestampToDt(to.getTime())
   },
   Query: {
     thang (ctx, {id}, {db}) {
@@ -329,11 +345,11 @@ const resolvers: Resolvers = {
     id: ({_id}) => _id.toHexString(),
     async thang ({thang: id}, _, {db}) {
       const thang = await db.thang(id)
-      return assert(thang)
+      return thang
     },
     async user ({user: id}, _, {db}) {
       const user = await db.user(id)
-      return assert(user)
+      return user
     }
   },
   Mutation: {
@@ -347,7 +363,8 @@ const resolvers: Resolvers = {
           from: new Date(from),
           to: new Date(to),
           owner: user._id,
-          thang: t._id
+          thang: t._id,
+          deleted: false
         })
         await db.thangAddUser(t._id, user._id)
         return assert(db.booking(id))
@@ -417,6 +434,7 @@ const resolvers: Resolvers = {
           owners: [user._id],
           users: [user._id],
           collection: null,
+          deleted: false,
           timezone
         })
         const t: Thang = await assert(db.thang(id))
@@ -427,7 +445,8 @@ const resolvers: Resolvers = {
         validateName(args.name)
         const id = await db.createThangCollection({
           name: args.name,
-          owners: [user._id]
+          owners: [user._id],
+          deleted: false
         })
         return assert(db.thangCollection(id))
       }),

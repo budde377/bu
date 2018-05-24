@@ -1,5 +1,6 @@
 // @flow
-import { graphql } from 'graphql'
+import { graphql, parse } from 'graphql'
+import { subscribe } from 'graphql/subscription'
 import schema from '../schema'
 import faker from 'faker'
 import type { User, Thang, Booking, ThangCollection, WithoutId } from '../../db'
@@ -10,6 +11,10 @@ import * as auth from '../../auth'
 
 jest.mock('../../auth')
 
+function timeout (t) {
+  return new Promise(resolve => setTimeout(() => resolve(), t))
+}
+
 function fakeUser (): WithoutId<User> {
   const givenName = faker.name.firstName()
   const familyName = faker.name.lastName()
@@ -17,6 +22,7 @@ function fakeUser (): WithoutId<User> {
   return {
     email,
     familyName,
+    deleted: false,
     givenName,
     timezone: 'America/New_York',
     profile: {
@@ -48,7 +54,8 @@ describe('schema', () => {
   let user1: User
   let user2: User
   let user3: User
-  let thang: Thang
+  let thang1: Thang
+  let thang2: Thang
   let booking: Booking
   let db
   const buildContext = (user = null, profile = {emailVerified: true}) => ({
@@ -71,6 +78,7 @@ describe('schema', () => {
       name: faker.commerce.productName(),
       collection: null,
       owners: [owner._id],
+      deleted: false,
       timezone: owner.timezone,
       users: [owner._id]
     })
@@ -84,6 +92,7 @@ describe('schema', () => {
   const createBooking = async (thang: Thang, owner: User): Promise<Booking> => {
     const id = await db.createBooking({
       owner: owner._id,
+      deleted: false,
       thang: thang._id,
       from: new Date(dtToTimestamp({year: 2017, month: 1, day: 1, hour: 1, minute: 1}) || 0),
       to: new Date(dtToTimestamp({year: 2017, month: 1, day: 1, hour: 2, minute: 1}) || 0),
@@ -105,8 +114,9 @@ describe('schema', () => {
     user1 = await createUser()
     user2 = await createUser()
     user3 = await createUser()
-    thang = await createThang(user2)
-    booking = await createBooking(thang, user1)
+    thang1 = await createThang(user2)
+    thang2 = await createThang(user2)
+    booking = await createBooking(thang1, user1)
   })
 
   describe('query: me', () => {
@@ -284,6 +294,27 @@ describe('schema', () => {
         }
       })
     })
+    it('should not fetch deleted bookings on self', async () => {
+      await db.deleteBooking(booking._id)
+      const result = await graphql(schema, q(), {}, buildContext(user1))
+      expect(result).toEqual({
+        data: {
+          user: {
+            email: user1.email,
+            collections: [],
+            thangs: [],
+            bookings: [],
+            displayName: user1.givenName || user1.profile.nickname,
+            emailVerified: user1.profile.emailVerified,
+            familyName: user1.familyName,
+            givenName: user1.givenName,
+            id: user1._id.toHexString(),
+            picture: userPicture(user1),
+            timezone: user1.timezone
+          }
+        }
+      })
+    })
     it('should fetch thangs on self', async () => {
       const result = await graphql(schema, q({id: user2._id.toHexString()}), {}, buildContext(user2))
       expect(result).toEqual({
@@ -292,7 +323,28 @@ describe('schema', () => {
             email: user2.email,
             collections: [],
             bookings: [],
-            thangs: [{id: thang._id.toHexString()}],
+            thangs: [{id: thang1._id.toHexString()}, {id: thang2._id.toHexString()}],
+            displayName: user2.givenName || user2.profile.nickname,
+            emailVerified: user2.profile.emailVerified,
+            familyName: user2.familyName,
+            givenName: user2.givenName,
+            id: user2._id.toHexString(),
+            picture: userPicture(user2),
+            timezone: user2.timezone
+          }
+        }
+      })
+    })
+    it('should not fetch deleted thangs on self', async () => {
+      await db.deleteThang(thang1._id)
+      const result = await graphql(schema, q({id: user2._id.toHexString()}), {}, buildContext(user2))
+      expect(result).toEqual({
+        data: {
+          user: {
+            email: user2.email,
+            collections: [],
+            bookings: [],
+            thangs: [{id: thang2._id.toHexString()}],
             displayName: user2.givenName || user2.profile.nickname,
             emailVerified: user2.profile.emailVerified,
             familyName: user2.familyName,
@@ -376,6 +428,7 @@ describe('schema', () => {
       const id = await db.createThang({
         owners: [user1._id],
         users: [user1._id],
+        deleted: false,
         timezone: user1.timezone,
         name: 'Foobar',
         collection: null
@@ -496,10 +549,25 @@ describe('schema', () => {
 
   describe('mutation: createBooking', () => {
     let year = (new Date()).getFullYear()
-    const createBooking = (id : string = 'baz', from = `{hour: 1, minute: 1, day: 1, month: 1, year: ${year + 1}}`, to = `{hour: 2, minute: 1, day: 1, month: 1, year: ${year + 1}}`) => `
+    const createBooking = (id: string = 'baz', from = `{hour: 1, minute: 1, day: 1, month: 1, year: ${year + 1}}`, to = `{hour: 2, minute: 1, day: 1, month: 1, year: ${year + 1}}`) => `
     mutation {
       createBooking(thang: "${id}", from: ${from}, to: ${to}) {
         id
+        from {
+          hour
+          minute
+          year
+          day
+          month
+        }
+        to {
+          hour
+          minute
+          year
+          day
+          month
+        }
+
         owner {
           id
         }
@@ -530,10 +598,29 @@ describe('schema', () => {
       const from = `{hour: 1, minute: 1, day: 27, month: 2, year: ${year + 2002}}`
       const to = `{hour: 1, minute: 1, day: 28, month: 2, year: ${year + 2002}}`
       // $FlowFixMe
-      const result = await graphql(schema, createBooking(thang._id, from, to), {}, buildContext(user1))
+      const result = await graphql(schema, createBooking(thang1._id, from, to), {}, buildContext(user1))
       expect(result.data).toBeTruthy()
+      expect(result.data.createBooking.from).toEqual({hour: 1, minute: 1, day: 27, month: 2, year: year + 2002})
+      expect(result.data.createBooking.to).toEqual({hour: 1, minute: 1, day: 28, month: 2, year: year + 2002})
       expect(result.data.createBooking.owner).toEqual({id: user1._id.toString()})
       expect(result.data.createBooking.thang.bookings).toEqual([{id: result.data.createBooking.id}])
+    })
+    it('should create booking again', async () => {
+      // $FlowFixMe
+      const from = `{hour: 1, minute: 1, day: 27, month: 2, year: ${year + 2002}}`
+      const to = `{hour: 1, minute: 1, day: 28, month: 2, year: ${year + 2002}}`
+      // $FlowFixMe
+      const result = await graphql(schema, createBooking(thang1._id.toHexString(), from, to), {}, buildContext(user1))
+      expect(result.data).toBeTruthy()
+      expect(result.data.createBooking.owner).toEqual({id: user1._id.toHexString()})
+      expect(result.data.createBooking.thang.bookings).toEqual([{id: result.data.createBooking.id}])
+      // $FlowFixMe
+      await db.deleteBooking(db.id(result.data.createBooking.id))
+      // $FlowFixMe
+      const result2 = await graphql(schema, createBooking(thang1._id.toHexString(), from, to), {}, buildContext(user1))
+      expect(result2.data).toBeTruthy()
+      expect(result2.data.createBooking.owner).toEqual({id: user1._id.toHexString()})
+      expect(result2.data.createBooking.thang.bookings).toEqual([{id: result2.data.createBooking.id}])
     })
     it('should fail on email not verified', async () => {
       const result = await graphql(schema, createBooking(), {}, buildContext(user1, {emailVerified: false}))
@@ -543,89 +630,89 @@ describe('schema', () => {
     it('should fail invalid from date', async () => {
       const from = `{hour: 1, minute: 1, day: 30, month: 2, year: ${year + 2010}}`
       const to = `{hour: 1, minute: 1, day: 30, month: 3, year: ${year + 2010}}`
-      const result = await graphql(schema, createBooking(thang._id.toHexString(), from, to), {}, buildContext(user1))
+      const result = await graphql(schema, createBooking(thang1._id.toHexString(), from, to), {}, buildContext(user1))
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
     it('should fail invalid to date', async () => {
       const from = `{hour: 1, minute: 1, day: 27, month: 2, year: ${year + 2010}}`
       const to = `{hour: 1, minute: 1, day: 30, month: 2, year: ${year + 2010}}`
-      const result = await graphql(schema, createBooking(thang._id.toHexString(), from, to), {}, buildContext(user1))
+      const result = await graphql(schema, createBooking(thang1._id.toHexString(), from, to), {}, buildContext(user1))
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
     it('should fail with from after to', async () => {
       const from = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2010}}`
       const to = `{hour: 1, minute: 1, day: 1, month: 1, year: ${year + 2010}}`
-      const result = await graphql(schema, createBooking(thang._id.toHexString(), from, to), {}, buildContext(user1))
+      const result = await graphql(schema, createBooking(thang1._id.toHexString(), from, to), {}, buildContext(user1))
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
     it('should fail with from eq to to', async () => {
       const from = `{hour: 1, minute: 1, day: 1, month: 1, year: ${year + 2010}}`
       const to = `{hour: 1, minute: 1, day: 1, month: 1, year: ${year + 2010}}`
-      const result = await graphql(schema, createBooking(thang._id.toHexString(), from, to), {}, buildContext(user1))
+      const result = await graphql(schema, createBooking(thang1._id.toHexString(), from, to), {}, buildContext(user1))
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
     it('should fail with overlap', async () => {
       const from1 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2020}}`
       const to1 = `{hour: 1, minute: 1, day: 2, month: 2, year: ${year + 2020}}`
-      const r1 = await graphql(schema, createBooking(thang._id.toHexString(), from1, to1), {}, buildContext(user1))
+      const r1 = await graphql(schema, createBooking(thang1._id.toHexString(), from1, to1), {}, buildContext(user1))
       expect(r1.data).toBeTruthy()
       const from2 = `{hour: 1, minute: 1, day: 1, month: 1, year: ${year + 2020}}`
       const to2 = `{hour: 1, minute: 1, day: 1, month: 3, year: ${year + 2020}}`
-      const r2 = await graphql(schema, createBooking(thang._id.toHexString(), from2, to2), {}, buildContext(user1))
+      const r2 = await graphql(schema, createBooking(thang1._id.toHexString(), from2, to2), {}, buildContext(user1))
       // $FlowFixMe
       expect(r2).toFailWithCode('DUPLICATE')
     })
     it('should fail with overlap 2', async () => {
       const from1 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2021}}`
       const to1 = `{hour: 1, minute: 1, day: 2, month: 2, year: ${year + 2021}}`
-      const r1 = await graphql(schema, createBooking(thang._id.toHexString(), from1, to1), {}, buildContext(user1))
+      const r1 = await graphql(schema, createBooking(thang1._id.toHexString(), from1, to1), {}, buildContext(user1))
       expect(r1.data).toBeTruthy()
       const from2 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2021}}`
       const to2 = `{hour: 1, minute: 1, day: 2, month: 2, year: ${year + 2021}}`
-      const r2 = await graphql(schema, createBooking(thang._id.toHexString(), from2, to2), {}, buildContext(user1))
+      const r2 = await graphql(schema, createBooking(thang1._id.toHexString(), from2, to2), {}, buildContext(user1))
       // $FlowFixMe
       expect(r2).toFailWithCode('DUPLICATE')
     })
     it('should fail with overlap 4', async () => {
       const from1 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2023}}`
       const to1 = `{hour: 1, minute: 1, day: 3, month: 2, year: ${year + 2023}}`
-      const r1 = await graphql(schema, createBooking(thang._id.toHexString(), from1, to1), {}, buildContext(user1))
+      const r1 = await graphql(schema, createBooking(thang1._id.toHexString(), from1, to1), {}, buildContext(user1))
       expect(r1.data).toBeTruthy()
       const from2 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2023}}`
       const to2 = `{hour: 1, minute: 1, day: 2, month: 2, year: ${year + 2023}}`
-      const r2 = await graphql(schema, createBooking(thang._id.toHexString(), from2, to2), {}, buildContext(user1))
+      const r2 = await graphql(schema, createBooking(thang1._id.toHexString(), from2, to2), {}, buildContext(user1))
       // $FlowFixMe
       expect(r2).toFailWithCode('DUPLICATE')
     })
     it('should fail with time passed', async () => {
       const from1 = `{hour: 1, minute: 1, day: 1, month: 2, year: 2000}`
       const to1 = `{hour: 1, minute: 1, day: 3, month: 2, year: 2000}`
-      const r1 = await graphql(schema, createBooking(thang._id.toHexString(), from1, to1), {}, buildContext(user1))
+      const r1 = await graphql(schema, createBooking(thang1._id.toHexString(), from1, to1), {}, buildContext(user1))
       // $FlowFixMe
       expect(r1).toFailWithCode('INVALID_INPUT')
     })
     it('should succeed with close to overlap', async () => {
       const from1 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2024}}`
       const to1 = `{hour: 1, minute: 1, day: 3, month: 2, year: ${year + 2024}}`
-      const r1 = await graphql(schema, createBooking(thang._id.toHexString(), from1, to1), {}, buildContext(user1))
+      const r1 = await graphql(schema, createBooking(thang1._id.toHexString(), from1, to1), {}, buildContext(user1))
       expect(r1.data).toBeTruthy()
       const from2 = `{hour: 1, minute: 1, day: 3, month: 2, year: ${year + 2024}}`
       const to2 = `{hour: 1, minute: 1, day: 6, month: 2, year: ${year + 2024}}`
-      const r2 = await graphql(schema, createBooking(thang._id.toHexString(), from2, to2), {}, buildContext(user1))
+      const r2 = await graphql(schema, createBooking(thang1._id.toHexString(), from2, to2), {}, buildContext(user1))
       expect(r2.data).toBeTruthy()
     })
     it('should succeed with close to overlap 2', async () => {
       const from1 = `{hour: 1, minute: 1, day: 3, month: 2, year: ${year + 2024}}`
       const to1 = `{hour: 1, minute: 1, day: 6, month: 2, year: ${year + 2024}}`
-      const r1 = await graphql(schema, createBooking(thang._id.toHexString(), from1, to1), {}, buildContext(user1))
+      const r1 = await graphql(schema, createBooking(thang1._id.toHexString(), from1, to1), {}, buildContext(user1))
       expect(r1.data).toBeTruthy()
       const from2 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2024}}`
       const to2 = `{hour: 1, minute: 1, day: 3, month: 2, year: ${year + 2024}}`
-      const r2 = await graphql(schema, createBooking(thang._id.toHexString(), from2, to2), {}, buildContext(user1))
+      const r2 = await graphql(schema, createBooking(thang1._id.toHexString(), from2, to2), {}, buildContext(user1))
       expect(r2.data).toBeTruthy()
     })
   })
@@ -762,6 +849,7 @@ describe('schema', () => {
       const id = await db.createThang({
         owners: [user1._id],
         users: [user1._id],
+        deleted: false,
         timezone: user1.timezone,
         name: 'Foobar',
         collection: null
@@ -815,7 +903,10 @@ describe('schema', () => {
     })
     it('should update givenName', async () => {
       const givenName = 'FooBar2000'
-      const result = await graphql(schema, updateUser({id: user1._id.toHexString(), givenName}), {}, buildContext(user1))
+      const result = await graphql(schema, updateUser({
+        id: user1._id.toHexString(),
+        givenName
+      }), {}, buildContext(user1))
       expect(result).toEqual({
         data: {
           updateUser: {
@@ -828,19 +919,28 @@ describe('schema', () => {
     })
     it('should fail on empty given name', async () => {
       const givenName = ''
-      const result = await graphql(schema, updateUser({id: user1._id.toHexString(), givenName}), {}, buildContext(user1))
+      const result = await graphql(schema, updateUser({
+        id: user1._id.toHexString(),
+        givenName
+      }), {}, buildContext(user1))
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
     it('should fail on empty given name 2', async () => {
       const givenName = ' '
-      const result = await graphql(schema, updateUser({id: user1._id.toHexString(), givenName}), {}, buildContext(user1))
+      const result = await graphql(schema, updateUser({
+        id: user1._id.toHexString(),
+        givenName
+      }), {}, buildContext(user1))
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
     it('should update familyName', async () => {
       const familyName = 'FooBar2000'
-      const result = await graphql(schema, updateUser({id: user1._id.toHexString(), familyName}), {}, buildContext(user1))
+      const result = await graphql(schema, updateUser({
+        id: user1._id.toHexString(),
+        familyName
+      }), {}, buildContext(user1))
       expect(result).toEqual({
         data: {
           updateUser: {
@@ -853,13 +953,19 @@ describe('schema', () => {
     })
     it('should fail on empty family name', async () => {
       const familyName = ''
-      const result = await graphql(schema, updateUser({id: user1._id.toHexString(), familyName}), {}, buildContext(user1))
+      const result = await graphql(schema, updateUser({
+        id: user1._id.toHexString(),
+        familyName
+      }), {}, buildContext(user1))
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
     it('should fail on empty family name 2', async () => {
       const familyName = ' '
-      const result = await graphql(schema, updateUser({id: user1._id.toHexString(), familyName}), {}, buildContext(user1))
+      const result = await graphql(schema, updateUser({
+        id: user1._id.toHexString(),
+        familyName
+      }), {}, buildContext(user1))
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
@@ -919,7 +1025,8 @@ describe('schema', () => {
     it('should fail when user has collection', async () => {
       await db.createThangCollection({
         owners: [user1._id],
-        name: 'Foobar'
+        name: 'Foobar',
+        deleted: false
       })
       const result = await graphql(schema, deleteUser(user1._id.toHexString()), {}, buildContext(user1))
       // $FlowFixMe
@@ -930,6 +1037,7 @@ describe('schema', () => {
         collection: null,
         timezone: user1.timezone,
         users: [],
+        deleted: false,
         owners: [user1._id],
         name: 'Foobar'
       })
@@ -997,6 +1105,7 @@ describe('schema', () => {
     beforeEach(async () => {
       const id = await db.createThangCollection({
         owners: [user1._id],
+        deleted: false,
         name: 'Foobar'
       })
       const b = await db.thangCollection(id)
@@ -1039,6 +1148,7 @@ describe('schema', () => {
     beforeEach(async () => {
       const id = await db.createThang({
         owners: [user1._id],
+        deleted: false,
         users: [user1._id],
         timezone: user1.timezone,
         name: 'Foobar',
@@ -1067,6 +1177,379 @@ describe('schema', () => {
       expect(result.data.visitThang.thang).toEqual({
         id: thang._id.toHexString()
       })
+    })
+  })
+  describe('subscription: bookingsChange', () => {
+    jest.setTimeout(10000)
+    const bookingsChange = (id: string, from, to) => parse(`
+      subscription {
+        bookingsChange(thang: "${id}"${from && to ? `, input: {from: ${from}, to: ${to}}` : ''}) {
+          add {
+            id
+          }
+          remove
+          update {
+            id
+          }
+        }
+      }
+    `)
+
+    it('should work on invalid id', async () => {
+      const stream = await subscribe({
+        schema,
+        document: bookingsChange(faker.random.uuid()),
+        contextValue: buildContext(user1)
+      })
+      if (typeof stream.next !== 'function') {
+        expect(true).toBe(false)
+        return
+      }
+      const r = Promise.race([stream.next(), timeout(2000)])
+      const booking = {
+        from: new Date(Date.now() + 1000),
+        to: new Date(Date.now() + 2000),
+        owner: user1._id,
+        thang: thang1._id,
+        deleted: false
+      }
+      db.createBooking(booking)
+      expect(await r).toBeFalsy()
+    })
+    it('should work on actual thang', async () => {
+      const stream = await subscribe({
+        schema,
+        document: bookingsChange(thang1._id.toHexString()),
+        contextValue: buildContext(user1)
+      })
+      if (typeof stream.next !== 'function') {
+        expect(true).toBe(false)
+        return
+      }
+      const v = stream.next()
+      await timeout(1000)
+      const booking = {
+        from: new Date(Date.now() + 1000),
+        to: new Date(Date.now() + 2000),
+        owner: user1._id,
+        thang: thang1._id,
+        deleted: false
+      }
+      const id = await db.createBooking(booking)
+      expect(await v).toEqual({
+        done: false,
+        value: {
+          data: {
+            bookingsChange: {
+              add: {id: id.toHexString()},
+              remove: null,
+              update: null
+            }
+          }
+        }
+      })
+    })
+    it('should be limited to thang', async () => {
+      const stream = await subscribe({
+        schema,
+        document: bookingsChange(thang2._id.toHexString()),
+        contextValue: buildContext(user1)
+      })
+      const booking = {
+        from: new Date(Date.now() + 1000),
+        to: new Date(Date.now() + 2000),
+        owner: user1._id,
+        thang: thang1._id,
+        deleted: false
+      }
+      if (typeof stream.next !== 'function') {
+        expect(true).toBe(false)
+        return
+      }
+      const r = Promise.race([stream.next(), timeout(2000)])
+      db.createBooking(booking)
+      expect(await r).toBeFalsy()
+    })
+    it('should be limited to time', async () => {
+      const from = new Date(1527171676117)
+      const to = new Date(1527171676117 + 2000)
+
+      const stream = await subscribe({
+        schema,
+        document: bookingsChange(thang1._id.toHexString(), `{hour: 10, day: 24, month: 5, year: 2018, minute: 0}`, `{hour: 20, day: 24, month: 5, year: 2018, minute: 0}`),
+        contextValue: buildContext(user1)
+      })
+      const booking = {
+        from, to,
+        owner: user1._id,
+        thang: thang1._id,
+        deleted: false
+      }
+      if (typeof stream.next !== 'function') {
+        expect(true).toBe(false)
+        return
+      }
+      const r = Promise.race([stream.next(), timeout(5000)])
+      // await timeout(1000)
+      const id = await db.createBooking(booking)
+      expect(await r).toEqual({
+        done: false,
+        value: {
+          data: {
+            bookingsChange: {
+              add: {id: id.toHexString()},
+              remove: null,
+              update: null
+            }
+          }
+        }
+      })
+    })
+    it('should be limited to time 2', async () => {
+      const from = new Date(1527171676117)
+      const to = new Date(1527171676117 + 2000)
+
+      const stream = await subscribe({
+        schema,
+        document: bookingsChange(thang1._id.toHexString(), `{hour: 10, day: 24, month: 5, year: 2019, minute: 0}`, `{hour: 20, day: 24, month: 5, year: 2019, minute: 0}`),
+        contextValue: buildContext(user1)
+      })
+      const booking = {
+        from, to,
+        owner: user1._id,
+        thang: thang1._id,
+        deleted: false
+      }
+      if (typeof stream.next !== 'function') {
+        expect(true).toBe(false)
+        return
+      }
+      const r = Promise.race([stream.next(), timeout(2000)])
+      db.createBooking(booking)
+      expect(await r).toBeFalsy()
+    })
+    it('should work on deletion', async () => {
+      await timeout(1000)
+      const stream = await subscribe({
+        schema,
+        document: bookingsChange(thang1._id.toHexString()),
+        contextValue: buildContext(user1)
+      })
+      if (typeof stream.next !== 'function') {
+        expect(true).toBe(false)
+        return
+      }
+      const v = stream.next()
+      await db.deleteBooking(booking._id)
+      expect(await v).toEqual({
+        done: false,
+        value: {
+          data: {
+            bookingsChange: {
+              add: null,
+              remove: booking._id.toHexString(),
+              update: null
+            }
+          }
+        }
+      })
+    })
+  })
+  describe('subscription: userThangChanges', () => {
+    jest.setTimeout(10000)
+    const thangChange  = parse(`
+      subscription {
+        myThangsChange {
+          add {
+            id
+          }
+          remove
+          update {
+            id
+          }
+        }
+      }
+    `)
+
+    it('should fail on not logged in ', async () => {
+      const stream = await subscribe({
+        schema,
+        document: thangChange,
+        contextValue: buildContext()
+      })
+      // $FlowFixMe lolz
+      expect(stream).toFailWithCode('USER_NOT_LOGGED_IN')
+    })
+    it('should work on user logged in', async () => {
+      const stream = await subscribe({
+        schema,
+        document: thangChange,
+        contextValue: buildContext(user1)
+      })
+      if (typeof stream.next !== 'function') {
+        expect(true).toBe(false)
+        return
+      }
+      const v = stream.next()
+      await timeout(1000)
+      const id = await db.createThang({
+        collection: null,
+        deleted: false,
+        name: faker.name.findName(),
+        owners: [user1._id],
+        users: [],
+        timezone: user1.timezone
+      })
+      expect(await v).toEqual({
+        done: false,
+        value: {
+          data: {
+            myThangsChange: {
+              add: {id: id.toHexString()},
+              remove: null,
+              update: null
+            }
+          }
+        }
+      })
+    })
+    it('should work on deletion', async () => {
+      await timeout(1000)
+      // $FlowFixMe
+      const stream = await subscribe({
+        schema,
+        document: thangChange,
+        contextValue: buildContext(user2)
+      })
+      const v = stream.next()
+      await db.deleteThang(thang1._id)
+      expect(await v).toEqual({
+        done: false,
+        value: {
+          data: {
+            myThangsChange: {
+              add: null,
+              remove: thang1._id.toHexString(),
+              update: null
+            }
+          }
+        }
+      })
+      await stream.return()
+    })
+    it('should only work on my thangs', async () => {
+      const stream = await subscribe({
+        schema,
+        document: thangChange,
+        contextValue: buildContext(user1)
+      })
+      if (typeof stream.next !== 'function') {
+        expect(true).toBe(false)
+        return
+      }
+      const r = Promise.race([stream.next(), timeout(2000)])
+      await db.deleteThang(thang1._id)
+      expect(await r).toBeFalsy()
+    })
+  })
+  describe('subscription: thangChange', () => {
+    jest.setTimeout(10000)
+    const thangChange = (id: string) => parse(`
+      subscription {
+        thangChange(thang: "${id}") {
+          add {
+            id
+          }
+          remove
+          update {
+            id
+            users {
+              id
+            }
+          }
+        }
+      }
+    `)
+
+    it('should work on right id', async () => {
+      const stream = await subscribe({
+        schema,
+        document: thangChange(thang1._id.toHexString()),
+        contextValue: buildContext(user1)
+      })
+      if (typeof stream.next !== 'function') {
+        expect(true).toBe(false)
+        return
+      }
+      const v = stream.next()
+      await db.thangAddUser(thang1._id, user1._id)
+      expect(await v).toEqual({
+        done: false,
+        value: {
+          data: {
+            thangChange: {
+              update: {id: thang1._id.toHexString(), users: [
+                  {id: user2._id.toHexString()},
+                  {id: user1._id.toHexString()}
+                ]},
+              remove: null,
+              add: null
+            }
+          }
+        }
+      })
+    })
+    it('should work on deletion', async () => {
+      await timeout(1000)
+      // $FlowFixMe
+      const stream = await subscribe({
+        schema,
+        document: thangChange(thang1._id.toHexString()),
+        contextValue: buildContext(user2)
+      })
+      const v = stream.next()
+      await db.deleteThang(thang1._id)
+      expect(await v).toEqual({
+        done: false,
+        value: {
+          data: {
+            thangChange: {
+              add: null,
+              remove: thang1._id.toHexString(),
+              update: null
+            }
+          }
+        }
+      })
+      await stream.return()
+    })
+    it('should only work on my thangs', async () => {
+      const stream = await subscribe({
+        schema,
+        document: thangChange(thang2._id.toHexString()),
+        contextValue: buildContext(user1)
+      })
+      if (typeof stream.next !== 'function') {
+        expect(true).toBe(false)
+        return
+      }
+      const r = Promise.race([stream.next(), timeout(2000)])
+      await db.thangAddUser(thang1._id, user1._id)
+      expect(await r).toBeFalsy()
+    })
+    it('should only work on my thangs2', async () => {
+      const stream = await subscribe({
+        schema,
+        document: thangChange(faker.random.uuid()),
+        contextValue: buildContext(user1)
+      })
+      if (typeof stream.next !== 'function') {
+        expect(true).toBe(false)
+        return
+      }
+      const r = Promise.race([stream.next(), timeout(2000)])
+      await db.thangAddUser(thang1._id, user1._id)
+      expect(await r).toBeFalsy()
     })
   })
 })

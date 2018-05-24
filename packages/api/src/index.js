@@ -1,5 +1,4 @@
 // @flow
-import 'babel-polyfill'
 import Koa from 'koa'
 import logger from 'koa-logger'
 import koaBody from 'koa-bodyparser'
@@ -22,8 +21,9 @@ async function onConnect (connectionParams): Promise<Context> {
   if (!connectionParams.authToken) {
     return {userProfile: null, db: new Db()}
   }
-  const userProfile = await cachedTokenToUser(connectionParams.authToken)
-  return {userProfile: userProfile, db: new Db()}
+  const db = new Db()
+  const userProfile = await cachedTokenToUser(db, connectionParams.authToken)
+  return {userProfile: userProfile, db}
 }
 
 app.use(mw)

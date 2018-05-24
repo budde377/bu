@@ -13,6 +13,9 @@
     "_id": {
       "bsonType": "objectId"
     },
+    "deleted": {
+      "bsonType": "bool"
+    },
     "email": {
       "description": "User e-mail",
       "bsonType": "string"

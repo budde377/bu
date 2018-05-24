@@ -33,6 +33,9 @@
     },
     "collection": {
       "bsonType": ["objectId", "null"]
+    },
+    "deleted": {
+      "bsonType": "bool"
     }
   },
   "additionalProperties": false

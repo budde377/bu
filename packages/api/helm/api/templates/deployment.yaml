@@ -30,8 +30,8 @@ spec:
           env:
             - name: PORT
               value: {{ .Values.service.port | quote }}
-            - name: RETHINK_HOST
-              value: {{ .Values.rethink.host | quote }}
+            - name: MONGO_URL
+              value: {{ .Values.mongo.url | quote }}
             - name: AUTH_MANAGEMENT_CLIENT_ID
               value: {{ .Values.auth.management.clientId | quote }}
             - name: AUTH_MANAGEMENT_CLIENT_SECRET

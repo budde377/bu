@@ -5,3 +5,6 @@ services:
     restart: always
     ports:
       - 27017:27017
+    command: --smallfiles --replSet trs0
+    volumes:
+      - ./docker/initTestDb.js:/docker-entrypoint-initdb.d/initDb.js

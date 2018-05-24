@@ -4,11 +4,8 @@ subscription subscribeThangs {
             id
             name
         }
-        remove {
-            id
-            name
-        }
-        change {
+        remove
+        update {
             id
             name
         }

@@ -21,10 +21,8 @@ subscription subscribeBookings($thang: ID!, $from: DateTimeInput!, $to: DateTime
                 year
             }
         }
-        remove {
-            id
-        }
-        change {
+        remove
+        update {
             id
             from {
                 day

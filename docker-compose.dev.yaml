@@ -27,6 +27,10 @@ services:
     restart: always
     ports:
       - 8082:8081
+    depends_on:
+      - mongo-r1
+      - mongo-r2
+      - mongo-r3
     environment:
       ME_CONFIG_MONGODB_SERVER: 'mongo-r1,mongo-r2,mongo-r3'
   api:
@@ -47,8 +51,8 @@ services:
     restart: always
     environment:
       REDIS_HOST: redis
-      API_HOST: api
-      API_PORT: 3000
+      API_SERVER_HTTP: http://api:3000
+      API_SERVER_WS: ws://api:3000
       PORT: 4000
       HOST: 0.0.0.0
     ports:
