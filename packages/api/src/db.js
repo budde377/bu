@@ -84,20 +84,13 @@ const streams: {|
 
 class FilterTransform<T> extends Transform {
   _filter: (t: T) => boolean
-  _changeStream: ChangeStream<ChangeStreamDocumentUpdateLookup<T>>
 
-  constructor (changeStream: *, filter: *) {
+  constructor (filter: *) {
     super({
       readableObjectMode: true,
       writableObjectMode: true
     })
-    this._changeStream = changeStream
     this._filter = filter
-    changeStream.on('change', this._listener)
-  }
-
-  _listener = (c) => {
-    this.write(c)
   }
 
   _transform (data: any, encoding, callback: (e: ?Error, data?: any) => mixed) {
@@ -106,10 +99,6 @@ class FilterTransform<T> extends Transform {
     } else {
       callback()
     }
-  }
-  _destroy (err, callback) {
-    this._changeStream.off('change', this._listener)
-    callback(err)
   }
 }
 
@@ -461,7 +450,7 @@ export default class Db {
 
   async thangBookingChanges (thang: ID, time: ?{ from: number, to: number } = null): Promise<AsyncIterator<Change<Booking>>> {
     const stream = await this._bookingStream()
-    const t = new FilterTransform(stream, (a) => {
+    const t = new FilterTransform((a) => {
       const isThang = a.fullDocument.thang.equals(thang)
       if (!time) {
         return isThang
@@ -475,18 +464,21 @@ export default class Db {
           (to > time.from && to <= time.to)
         ))
     })
+    stream.pipe(t)
     return changeStreamToAsyncIterator(t)
   }
 
   async userThangChanges (id: ID): Promise<AsyncIterator<Change<Thang>>> {
     const stream = await this._thangStream()
-    const t = new FilterTransform(stream, (a) => a.fullDocument.owners.find(i => i.equals(id)))
+    const t = new FilterTransform((a) => a.fullDocument.owners.find(i => i.equals(id)))
+    stream.pipe(t)
     return changeStreamToAsyncIterator(t)
   }
 
   async thangChange (thang: ID): Promise<AsyncIterator<Change<Thang>>> {
     const stream = await this._thangStream()
-    const t = new FilterTransform(stream, a => a.fullDocument._id.equals(thang))
+    const t = new FilterTransform(a => a.fullDocument._id.equals(thang))
+    stream.pipe(t)
     return changeStreamToAsyncIterator(t)
   }
 }
