@@ -1,6 +1,6 @@
-subscription subscribeThangUsers($id: ID!) {
+subscription subscribeThang($id: ID!) {
     thangChange(thang: $id) {
-        change {
+        update {
             id
             name
             timezone

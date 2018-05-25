@@ -43,8 +43,8 @@ tolerations: []
 
 affinity: {}
 
-rethink:
-  host: rethinkdb-rethinkdb-proxy.rethinkdb.svc.cluster.local
+mongo:
+  url: mongodb://mongodb-mongodb-replicaset-0.mongodb-mongodb-replicaset.mongodb.svc.cluster.local:27017,mongodb-mongodb-replicaset-1.mongodb-mongodb-replicaset.mongodb.svc.cluster.local:27017,mongodb-mongodb-replicaset-2.mongodb-mongodb-replicaset.mongodb.svc.cluster.local:27017/?replicaSet=rs0
 
 auth:
   management:

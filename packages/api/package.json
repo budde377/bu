@@ -16,20 +16,23 @@
     "deploy:helm": "helm upgrade -i --wait --timeout 300 --set image.tag=${VERSION:-latest} --set auth.management.clientId=${AUTH_MANAGEMENT_CLIENT_ID:?Please set client id} --set auth.management.clientSecret=${AUTH_MANAGEMENT_CLIENT_SECRET:?Please set client secret} thang-api helm/api",
     "deploy": "npm run build:docker && npm run publish:docker && npm run deploy:helm"
   },
+  "engines": {
+    "node": "10"
+  },
+  "engineStrict": true,
   "jest": {
     "collectCoverageFrom": [
       "src/**/*.js",
       "!<rootDir>/node_modules/",
-      "!<rootDir>/src/auth.js",
-      "!<rootDir>/src/middleware/*.js"
+      "!<rootDir>/src/auth.js"
     ],
     "collectCoverage": true,
     "coverageThreshold": {
       "global": {
-        "branches": 70,
+        "branches": 80,
         "functions": 80,
-        "lines": 70,
-        "statements": 70
+        "lines": 80,
+        "statements": 80
       }
     }
   },
@@ -49,7 +52,6 @@
   "dependencies": {
     "@koa/cors": "^2.2.1",
     "apollo-server-koa": "^1.3.4",
-    "babel-polyfill": "^6.26.0",
     "config": "^1.30.0",
     "debug": "^3.1.0",
     "graphql": "^0.13.2",
@@ -67,19 +69,23 @@
     "koa-router": "^7.4.0",
     "lru-cache": "^4.1.2",
     "moment-timezone": "^0.5.14",
+    "mongodb": "^3.1.0-beta4",
     "node-fetch": "^2.1.2",
-    "rethinkdb": "^2.3.3",
-    "subscriptions-transport-ws": "^0.9.7",
+    "subscriptions-transport-ws": "^0.9.9",
     "superagent": "^3.8.2",
     "uuid": "^3.2.1"
   },
   "devDependencies": {
-    "babel-cli": "^6.26.0",
+    "@babel/cli": "^7.0.0-beta.48",
+    "@babel/core": "^7.0.0-beta.48",
+    "@babel/node": "^7.0.0-beta.48",
+    "@babel/preset-env": "^7.0.0-beta.48",
+    "@babel/preset-flow": "^7.0.0-beta.48",
+    "@babel/preset-stage-0": "^7.0.0-beta.48",
+    "babel-core": "^7.0.0-0",
     "babel-eslint": "^8.2.2",
+    "babel-jest": "^23.0.0",
     "babel-plugin-inline-import": "^2.0.6",
-    "babel-preset-env": "^1.6.1",
-    "babel-preset-flow": "^6.23.0",
-    "babel-preset-stage-0": "^6.24.1",
     "escope": "^3.6.0",
     "eslint": "^4.19.1",
     "eslint-config-standard-flow": "^1.0.1",
@@ -87,6 +93,7 @@
     "flow-bin": "^0.69.0",
     "flow-typed": "^2.4.0",
     "jest": "^22.4.3",
-    "nodemon": "^1.17.2"
+    "nodemon": "^1.17.2",
+    "regenerator-runtime": "^0.11.1"
   }
 }

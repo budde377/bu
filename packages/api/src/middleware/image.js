@@ -1,25 +1,28 @@
+// @flow
 import KoaRouter from 'koa-router'
 import compose from 'koa-compose'
-import { userFromId } from '../db'
-import type { User } from '../db'
 import { identiconFromString } from '../util/identicon'
 
 const router = new KoaRouter()
 
-function userPicture (uf: (s: string) => Promise<?User>, f: (ctx: *) => string) {
+function userPicture () {
   return async (ctx, next) => {
-    const id = f(ctx)
-    const u = await uf(id)
+    const id: string = ctx.params.id
+    const i = ctx.db.id(id)
+    if (!i) {
+      return next()
+    }
+    const u = await ctx.db.user(i)
     if (!u) {
       return next()
     }
-    const {data, mime, fetched} = u.picture || identiconFromString(u.email)
-    ctx.body = data
-    ctx.type = mime
+    const {data, mime, fetched} = u.profile.picture || identiconFromString(u.email)
+    ctx.response.body = data
+    ctx.response.type = mime
     ctx.set('ETag', fetched.toString())
   }
 }
 
-router.get('/i/id/:id', userPicture(userFromId, ctx => ctx.params.id))
+router.get('/i/id/:id', userPicture())
 
 export default compose([router.routes(), router.allowedMethods()])

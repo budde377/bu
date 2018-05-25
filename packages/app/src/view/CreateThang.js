@@ -9,17 +9,23 @@ import { Button } from './styled/Button'
 import CREATE_THANG from '../../graphql/createThang.graphql'
 import type { createThangMutation, createThangMutationVariables } from '../../graphql'
 
-class CreateThang extends React.Component<{ onCreate: (id: string) => mixed } & InjectIntlProvidedProps, { name: string, submitted: boolean }> {
-  state = {name: '', submitted: false}
+class CreateThang extends React.Component<{ onCreate: (id: string) => mixed } & InjectIntlProvidedProps, { name: string, submitted: boolean, created: boolean}> {
+  state = {name: '', submitted: false, created: false}
+
   _onChange = (evt: *) => this.setState({name: evt.target.value})
 
   _onSubmit = (createThang) => async (evt) => {
+    if (this.state.created) {
+      return
+    }
     this.setState({submitted: true})
     evt.preventDefault()
     if (!this.state.name) {
       return
     }
     const r = await createThang({variables: {name: this.state.name}})
+    this.setState({created: true})
+
     if (!r || !r.data) {
       return
     }

@@ -8,8 +8,6 @@ type DateTime {
 
 type User {
     id: ID!
-    name: String
-    nickname: String
     givenName: String
     familyName: String
     displayName: String!
@@ -54,8 +52,8 @@ type Booking {
     id: ID!
     from: DateTime!
     to: DateTime!
-    owner: User!
-    thang: Thang!
+    owner: User
+    thang: Thang
 }
 type Query {
     thang(id: ID!): Thang
@@ -69,8 +67,8 @@ type DeleteResult {
 
 type VisitLogEntry {
     id: ID!
-    thang: Thang!
-    user: User!
+    thang: Thang
+    user: User
 }
 
 type SentResult {
@@ -86,18 +84,22 @@ type Mutation {
     visitThang(id: ID!): VisitLogEntry!
     deleteThangCollection(id: ID!): DeleteResult!
     sendVerificationEmail: SentResult!
+    sendResetPasswordMail: SentResult!
+    updateUser(id: ID!, givenName: String, familyName: String, timezone: String): User!
+    deleteUser(id: ID!): DeleteResult!
+
 }
 
 type ChangeBooking {
     add: Booking
-    remove: Booking
-    change: Booking
+    remove: ID
+    update: Booking
 }
 
 type ChangeThang {
     add: Thang
-    remove: Thang
-    change: Thang
+    remove: ID
+    update: Thang
 }
 
 

@@ -3,7 +3,7 @@
 import React from 'react'
 import { FormattedDate } from 'react-intl'
 import moment from 'moment-timezone'
-import { Mutation, Query, type QueryRenderProps, type MutationFunction } from 'react-apollo'
+import { Mutation, Query, type QueryRenderProps, type MutationFunction, type SubscribeToMoreOptions } from 'react-apollo'
 import CREATE_BOOKING from '../../../graphql/createBooking.graphql'
 import DELETE_BOOKING from '../../../graphql/deleteBooking.graphql'
 import GET_BOOKINGS from '../../../graphql/getBookings.graphql'
@@ -18,7 +18,7 @@ import type {
   createBookingMutationVariables,
   deleteBookingMutationVariables,
   getBookingsQuery,
-  getBookingsQueryVariables
+  getBookingsQueryVariables, subscribeBookingsSubscription, subscribeBookingsSubscriptionVariables
 } from '../../../graphql'
 import EmailVerifiedCheck from '../EmailVerifiedCheck'
 
@@ -63,7 +63,7 @@ function momentToDt (m: moment): Dt {
 type Booking = {|
   from: Dt,
   to: Dt,
-  owner: {| picture: string, id: string |},
+  owner: ?{| picture: string, id: string |},
   id: string
 |}
 
@@ -188,13 +188,13 @@ class BookingTableBody extends React.Component<{ active: boolean, me: ?string, d
                                 return (
                                   <Cell
                                     key={j} data-cell-index={j} data-row-index={i} me={this.props.me}
-                                    owner={current && current.owner.id}
+                                    owner={current && current.owner && current.owner.id}
                                     active={this.props.active}
                                     percent={(this.props.now.isSame(n, 'h') ? this.props.now.minute() / 60 : (Math.max(0, Math.min(1, this.props.now.diff(n, 'h')))))}>
                                     <InterCell>
                                       {
                                         current
-                                          ? <Avatar picture={current.owner.picture} />
+                                          ? <Avatar picture={current.owner && current.owner.picture} />
                                           : <FauxCheck />
                                       }
                                     </InterCell>
@@ -306,40 +306,45 @@ class BookingTable extends React.Component<BookingTableProps, { days: number, no
           query={GET_BOOKINGS}
           fetchPolicy='cache-and-network'
           variables={variables}>
-          {({loading, error, data, subscribeToMore}: QueryRenderProps<getBookingsQuery, getBookingsQueryVariables>) => (
-            <BookingTableBody
-              me={this.props.me}
-              active={this.props.active}
-              days={this.state.days}
-              subscribe={() =>
-                subscribeToMore({
-                  document: SUBSCRIBE_BOOKINGS,
-                  variables,
-                  updateQuery: (prev, {subscriptionData}) => {
-                    if (!subscriptionData.data) return prev
-                    const {bookingsChange: {add, change, remove}} = subscriptionData.data
-                    if (!prev.thang) {
-                      return prev
-                    }
-                    const old = prev.thang.bookings
-                    const t1 = add
-                      ? [...old, add]
-                      : old
-                    const t2 = change
-                      ? t1.map((t) => t.id === change.id ? change : t)
-                      : t1
-                    const bookings = remove
-                      ? t2.filter((t) => t.id !== remove.id)
-                      : t2
-                    return {thang: {...prev.thang, bookings}}
+          {({loading, error, data, subscribeToMore}: QueryRenderProps<getBookingsQuery, getBookingsQueryVariables>) => {
+            const options: SubscribeToMoreOptions<getBookingsQuery, subscribeBookingsSubscription, subscribeBookingsSubscriptionVariables> = (
+              {
+                document: SUBSCRIBE_BOOKINGS,
+                variables,
+                updateQuery: (prev, {subscriptionData}) => {
+                  if (!subscriptionData.data) return prev
+                  const {bookingsChange: {add, update, remove}} = subscriptionData.data
+                  if (!prev.thang) {
+                    return prev
                   }
-                })
+                  const old = prev.thang.bookings
+                  const t1 = add
+                    ? [...old, add]
+                    : old
+                  const t2 = update
+                    ? t1.map((t) => t.id === update.id ? update : t)
+                    : t1
+                  const bookings = remove
+                    ? t2.filter((t) => t.id !== remove)
+                    : t2
+                  return {thang: {...prev.thang, bookings}}
+                }
               }
-              now={now}
-              offset={from}
-              thang={this.props.thang}
-              bookings={data && data.thang ? data.thang.bookings : null} />
-          )}
+            )
+            return (
+              <BookingTableBody
+                me={this.props.me}
+                active={this.props.active}
+                days={this.state.days}
+                subscribe={() =>
+                  subscribeToMore(options)
+                }
+                now={now}
+                offset={from}
+                thang={this.props.thang}
+                bookings={data && data.thang ? data.thang.bookings : null} />
+            )
+          }}
         </Query>
       </Table>
     )

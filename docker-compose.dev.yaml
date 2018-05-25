@@ -1,26 +1,58 @@
 version: '3'
 services:
+  redis:
+    image: redis:latest
+    ports:
+      - 6379:6379
+  mongo-r1:
+    image: mongo:3.6
+    restart: always
+    command: --replSet rs0
+    volumes:
+      - ./data/d1:/data/db
+  mongo-r2:
+    image: mongo:3.6
+    restart: always
+    command: --replSet rs0
+    volumes:
+      - ./data/d2:/data/db
+  mongo-r3:
+    image: mongo:3.6
+    restart: always
+    command: --replSet rs0
+    volumes:
+      - ./data/d3:/data/db
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8082:8081
+    depends_on:
+      - mongo-r1
+      - mongo-r2
+      - mongo-r3
+    environment:
+      ME_CONFIG_MONGODB_SERVER: 'mongo-r1,mongo-r2,mongo-r3'
   api:
     build:
       context: packages/api
       dockerfile: Dockerfile.dev
     environment:
-      RETHINK_HOST: rdb
+      MONGO_URL: mongodb://mongo-r1:27017/thang-test?replicaSet=rs0
     restart: always
     ports:
       - 3000:3000
     volumes:
       - ./packages/api:/app:rw
-    links:
-      - rdb
   app:
     build:
       context: packages/app
       dockerfile: Dockerfile.dev
     restart: always
     environment:
-      API_HOST: api
-      API_PORT: 3000
+      REDIS_HOST: redis
+      API_SERVER_HTTP: http://api:3000
+      API_SERVER_WS: ws://api:3000
       PORT: 4000
       HOST: 0.0.0.0
     ports:
@@ -28,14 +60,3 @@ services:
       - 4000:4000
     volumes:
       - ./packages/app:/app:rw
-    links:
-      - api
-      - redis
-  rdb:
-    image: rethinkdb:latest
-    ports:
-      - 28015:28015
-      - 29015:29015
-      - 8080:8080
-  redis:
-    image: redis:latest

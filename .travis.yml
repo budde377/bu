@@ -1,7 +1,7 @@
 sudo: required
 language: node_js
 node_js:
-  - 9
+  - 10
 services:
   - docker
 
@@ -10,7 +10,7 @@ before_install:
   - curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get | bash
   - npm i -g npm@latest
   - npm ci
-  - docker-compose up -d rdb
+  - docker-compose -f docker-compose.test.yaml up -d
 
 install:
   - npm run ci

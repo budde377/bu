@@ -12,3 +12,6 @@ auth:
   management:
     clientId: AUTH_MANAGEMENT_CLIENT_ID
     clientSecret: AUTH_MANAGEMENT_CLIENT_SECRET
+
+mongo:
+  url: MONGO_URL

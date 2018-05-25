@@ -1,0 +1,42 @@
+{
+  "title": "JSON schema for Users model",
+  "bsonType": "object",
+  "required": [
+    "_id",
+    "name",
+    "owners",
+    "users",
+    "timezone",
+    "collection"
+  ],
+  "properties": {
+    "_id": {
+      "bsonType": "objectId"
+    },
+    "name": {
+      "bsonType": "string"
+    },
+    "users": {
+      "bsonType": "array",
+      "items": {
+        "bsonType": "objectId"
+      }
+    },
+    "owners": {
+      "bsonType": "array",
+      "items": {
+        "bsonType": "objectId"
+      }
+    },
+    "timezone": {
+      "bsonType": "string"
+    },
+    "collection": {
+      "bsonType": ["objectId", "null"]
+    },
+    "deleted": {
+      "bsonType": "bool"
+    }
+  },
+  "additionalProperties": false
+}

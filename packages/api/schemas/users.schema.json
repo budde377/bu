@@ -1,0 +1,116 @@
+{
+  "title": "JSON schema for Users model",
+  "bsonType": "object",
+  "required": [
+    "_id",
+    "email",
+    "timezone",
+    "profile",
+    "givenName",
+    "familyName"
+  ],
+  "properties": {
+    "_id": {
+      "bsonType": "objectId"
+    },
+    "deleted": {
+      "bsonType": "bool"
+    },
+    "email": {
+      "description": "User e-mail",
+      "bsonType": "string"
+    },
+    "givenName": {
+      "description": "User given name",
+      "bsonType": [
+        "string",
+        "null"
+      ]
+    },
+    "familyName": {
+      "description": "User famliy name",
+      "bsonType": [
+        "string",
+        "null"
+      ]
+    },
+    "timezone": {
+      "description": "User timezone",
+      "bsonType": "string"
+    },
+    "profile": {
+      "bsonType": "object",
+      "required": [
+        "name",
+        "nickname",
+        "givenName",
+        "familyName",
+        "userId",
+        "email",
+        "emailVerified",
+        "picture"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Profile name",
+          "bsonType": "string"
+        },
+        "nickname": {
+          "description": "Profile nickname",
+          "bsonType": "string"
+        },
+        "userId": {
+          "description": "Profile userid",
+          "bsonType": "string"
+        },
+        "givenName": {
+          "description": "Profile given name",
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "familyName": {
+          "description": "Profile family name",
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "email": {
+          "description": "Profile e-mail",
+          "bsonType": "string"
+        },
+        "emailVerified": {
+          "description": "Is email verified",
+          "bsonType": "bool"
+        },
+        "picture": {
+          "description": "Profile picture",
+          "bsonType": [
+            "object",
+            "null"
+          ],
+          "required": [
+            "mime",
+            "fetched",
+            "data"
+          ],
+          "properties": {
+            "fetched": {
+              "bsonType": "date"
+            },
+            "mime": {
+              "bsonType": "string"
+            },
+            "data": {
+              "bsonType": "binData"
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

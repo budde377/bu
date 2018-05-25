@@ -1,5 +1,4 @@
 // @flow
-import 'babel-polyfill'
 import Koa from 'koa'
 import logger from 'koa-logger'
 import koaBody from 'koa-bodyparser'
@@ -11,6 +10,7 @@ import cors from '@koa/cors'
 import { cachedTokenToUser } from './auth'
 import mw from './middleware'
 import type { Context } from './graphql/schema'
+import Db from './db'
 
 const app = new Koa()
 app.use(cors())
@@ -19,10 +19,11 @@ app.use(logger())
 
 async function onConnect (connectionParams): Promise<Context> {
   if (!connectionParams.authToken) {
-    return {userProfile: null}
+    return {userProfile: null, db: new Db()}
   }
-  const userProfile = await cachedTokenToUser(connectionParams.authToken)
-  return {userProfile: userProfile}
+  const db = new Db()
+  const userProfile = await cachedTokenToUser(db, connectionParams.authToken)
+  return {userProfile: userProfile, db}
 }
 
 app.use(mw)

@@ -2,7 +2,7 @@
 
 import React, { Fragment } from 'react'
 import { type ContextRouter, withRouter } from 'react-router'
-import { Query, type QueryRenderProps } from 'react-apollo'
+import { Query, type QueryRenderProps, type SubscribeToMoreOptions } from 'react-apollo'
 import BookingTable from './BookingTable'
 import { FormattedMessage } from 'react-intl'
 import LogVisit from '../LogVisit'
@@ -13,7 +13,12 @@ import { Container, Top } from '../styled/Thang'
 import { Helmet } from 'react-helmet'
 import GET_THANG from '../../../graphql/getThang.graphql'
 import SUBSCRIBE_THANG from '../../../graphql/subscribeThang.graphql'
-import type { getThangQuery, getThangQueryVariables } from '../../../graphql'
+import type {
+  getThangQuery,
+  getThangQueryVariables,
+  subscribeThangSubscription,
+  subscribeThangSubscriptionVariables
+} from '../../../graphql'
 
 class BaseThang extends React.Component<ContextRouter> {
   render () {
@@ -41,18 +46,21 @@ class BaseThang extends React.Component<ContextRouter> {
                 </H1>
               )
             }
-            const subscribe = () => subscribeToMore({
-              document: SUBSCRIBE_THANG,
-              variables: {id: this.props.match.params.id || ''},
-              updateQuery: (prev, {subscriptionData}) => {
-                if (!subscriptionData.data) return prev
-                const {thangChange: {change}} = subscriptionData.data
-                if (!change) {
-                  return prev
+            const options: SubscribeToMoreOptions<getThangQuery, subscribeThangSubscription, subscribeThangSubscriptionVariables> = (
+              {
+                document: SUBSCRIBE_THANG,
+                variables: {id: this.props.match.params.id || ''},
+                updateQuery: (prev, {subscriptionData}) => {
+                  if (!subscriptionData.data) return prev
+                  const {thangChange: {update}} = subscriptionData.data
+                  if (!update) {
+                    return prev
+                  }
+                  return {thang: update}
                 }
-                return change
               }
-            })
+            )
+            const subscribe = () => subscribeToMore(options)
             return (
               <Fragment>
                 <Top>
