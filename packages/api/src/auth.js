@@ -77,7 +77,7 @@ async function fetchPicture (url: string): Promise<?Picture> {
       return null
     }
     const data = await res.buffer()
-    return {data, mime, fetched: Date.now()}
+    return {data, mime, fetched: new Date()}
   } catch (err) {
     logError(err)
     return null

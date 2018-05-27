@@ -575,7 +575,7 @@ export default class Db {
   }
 }
 
-export type Picture = {| data: Buffer, mime: string, fetched: number |}
+export type Picture = {| data: Buffer, mime: string, fetched: Date |}
 
 export type Profile = {|
   name: string,
