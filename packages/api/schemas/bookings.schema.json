@@ -6,11 +6,23 @@
     "from",
     "to",
     "owner",
-    "thang"
+    "thang",
+    "createdAt",
+    "updatedAt",
+    "deletedAt"
   ],
   "properties": {
     "_id": {
       "bsonType": "objectId"
+    },
+    "createdAt": {
+      "bsonType": "date"
+    },
+    "deletedAt": {
+      "bsonType": ["date", "null"]
+    },
+    "updatedAt": {
+      "bsonType": ["date", "null"]
     },
     "from": {
       "bsonType": "date"

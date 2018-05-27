@@ -65,12 +65,6 @@ type DeleteResult {
     deleted: Int!
 }
 
-type VisitLogEntry {
-    id: ID!
-    thang: Thang
-    user: User
-}
-
 type SentResult {
     sent: Int!
 }
@@ -81,7 +75,6 @@ type Mutation {
     createThangCollection(name: String!): ThangCollection!
     deleteThang(id: ID!): DeleteResult!
     deleteBooking(id: ID!): DeleteResult!
-    visitThang(id: ID!): VisitLogEntry!
     deleteThangCollection(id: ID!): DeleteResult!
     sendVerificationEmail: SentResult!
     sendResetPasswordMail: SentResult!

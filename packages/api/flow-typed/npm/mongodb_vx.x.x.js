@@ -106,13 +106,11 @@ declare module 'mongodb' {
   declare class Cursor<TDoc=any> extends EventEmitter {
     collation (options: CollationOptions): Cursor<TDoc>;
     next (): Promise<?TDoc>;
+    sort(key: $Keys<TDoc> | Array<$Keys<TDoc>>, order: 1 | -1): Cursor<TDoc>;
     toArray (): Promise<Array<TDoc>>;
   }
 
-  declare type Update = {
-    $set?: {},
-    $addToSet?: {}
-  }
+  declare type Update<TDoc> = {| $set?: $Shape<TDoc>, $addToSet?: {}, $currentDate?: {} |}
 
   declare export type AggregatorCommand =
     | {| $match: {} |}
@@ -193,7 +191,7 @@ declare module 'mongodb' {
     findOne (query: Query): Promise<?TDoc>;
     find (query?: Query): Cursor<TDoc>;
     aggregate<TDocRes> (pipeline: Pipeline<TDoc, TDocRes>): Cursor<TDocRes>;
-    updateOne (filter: Query, update: Update): Promise<{| acknowledged: boolean, matchedCount: number, modifiedCount: number |}>;
+    updateOne (filter: Query, update: Update<TDoc>): Promise<{| acknowledged: boolean, matchedCount: number, modifiedCount: number |}>;
     deleteOne (filter: Query): Promise<{| acknowledged: boolean, deletedCount: number |}>;
     insertOne (o: $Diff<TDoc, { _id: ObjectID }> | TDoc): Promise<{| insertedId: ObjectID, acknowledged: boolean |}>;
     watch<TDocRes> (pipeline?: Pipeline<TDoc, TDocRes>, options?: {| fullDocument?: 'default' |}): ChangeStream<ChangeStreamDocument<TDocRes>>;

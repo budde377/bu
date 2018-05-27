@@ -11,65 +11,62 @@ import config from 'config'
 import usersSchema from '../schemas/users.schema'
 import thangSchema from '../schemas/thangs.schema'
 import collectionsSchema from '../schemas/collections.schema'
-import visitsSchema from '../schemas/visits.schema'
 import bookingsSchema from '../schemas/bookings.schema'
 import { Transform } from 'stream'
 
 export type ID = ObjectID
+type I = (db: MDb, tableName: string) => Promise<any>
+
 // eslint-disable-next-line no-unused-vars
-type CollectionInitiator<V> = (db: MDb) => Promise<any>
+type CollectionInitiator<V> = Array<I>
 const collectionDefinitions: {|
   users: CollectionInitiator<User>,
   thangs: CollectionInitiator<Thang>,
   collections: CollectionInitiator<ThangCollection>,
-  bookings: CollectionInitiator<Booking>,
-  visits: CollectionInitiator<VisitLogEntry>
+  bookings: CollectionInitiator<Booking>
 |} = {
-  users: async db => {
-    const collection = await db.createCollection('users', {
-      validator: {
-        $jsonSchema: usersSchema
-      }
-    })
-    await collection.createIndex(
-      {email: 1},
-      {
-        collation: {
-          locale: 'en',
-          strength: 1
-        },
-        unique: true
-      }
-    )
-  },
-  thangs: async db => {
-    await db.createCollection('thangs', {
-      validator: {
-        $jsonSchema: thangSchema
-      }
-    })
-  },
-  collections: async db => {
-    await db.createCollection('collections', {
-      validator: {
-        $jsonSchema: collectionsSchema
-      }
-    })
-  },
-  bookings: async db => {
-    await db.createCollection('bookings', {
-      validator: {
-        $jsonSchema: bookingsSchema
-      }
-    })
-  },
-  visits: async db => {
-    await db.createCollection('visits', {
-      validator: {
-        $jsonSchema: visitsSchema
-      }
-    })
-  }
+  users: [
+    async (db, tableName) => {
+      const collection = await db.createCollection(tableName, {
+        validator: {
+          $jsonSchema: usersSchema
+        }
+      })
+      await collection.createIndex(
+        {email: 1},
+        {
+          collation: {
+            locale: 'en',
+            strength: 1
+          },
+          unique: true
+        }
+      )
+    }],
+  thangs: [
+    async (db, tableName) => {
+      await db.createCollection(tableName, {
+        validator: {
+          $jsonSchema: thangSchema
+        }
+      })
+    }],
+  collections: [
+    async (db, tableName) => {
+      await db.createCollection(tableName, {
+        validator: {
+          $jsonSchema: collectionsSchema
+        }
+      })
+    }],
+  bookings: [
+    async (db, tableName) => {
+      await db.createCollection(tableName, {
+        validator: {
+          $jsonSchema: bookingsSchema
+        }
+      })
+    }]
 }
 
 export type Change<T> = {| kind: 'add', doc: T |} | {| kind: 'update', doc: T |} | {| kind: 'remove', id: ID |}
@@ -161,19 +158,35 @@ export default class Db {
     const db = await this._dbP
     const collections = await db.collections()
     const collectionSet = new Set(collections.map(c => c.collectionName))
-    await Promise.all(
+
+    const expandedDefinitions: { i: I, table: string }[] =
       Object
         .keys(collectionDefinitions)
-        .filter(table => !collectionSet.has(table))
-        .map(table => collectionDefinitions[table](db))
-    )
-    return {
-      bookings: db.collection('bookings'),
-      thangs: db.collection('thangs'),
-      users: db.collection('users'),
-      collections: db.collection('collections'),
-      visits: db.collection('visits')
-    }
+        .reduce(
+          (acc, key) => (
+            [
+              ...acc,
+              ...(
+                collectionDefinitions[key]
+                  .reduce((acc, i: I, index: number) => ([...acc, {table: `${key}-v${index}`, i}]), [])
+              )
+            ]),
+          [])
+    await expandedDefinitions
+      .filter(({table}) => !collectionSet.has(table))
+      .reduce(
+        async (acc, {i, table}) => {
+          await acc
+          await i(db, table)
+        },
+        Promise.resolve())
+    return (
+      {
+        bookings: db.collection(`bookings-v${collectionDefinitions.bookings.length - 1}`),
+        thangs: db.collection(`thangs-v${collectionDefinitions.thangs.length - 1}`),
+        users: db.collection(`users-v${collectionDefinitions.users.length - 1}`),
+        collections: db.collection(`collections-v${collectionDefinitions.collections.length - 1}`)
+      })
   }
 
   async user (id: ID): Promise<?User> {
@@ -202,32 +215,44 @@ export default class Db {
     return (await this._collectionsP).bookings.findOne({_id: id, deleted: false})
   }
 
-  async visitLogEntry (id: ID): Promise<?VisitLogEntry> {
-    return (await this._collectionsP).visits.findOne({_id: id})
-  }
-
-  async createThang (args: WithoutId<Thang>): Promise<ID> {
-    const {insertedId} = await (await this._collectionsP).thangs.insertOne(args)
+  async createThang (args: WithoutIdAndTimestamps<Thang>): Promise<ID> {
+    const {insertedId} = await (await this._collectionsP).thangs.insertOne({
+      ...args,
+      createdAt: new Date(),
+      updatedAt: null,
+      deletedAt: null
+    })
     return insertedId
   }
 
-  async createThangCollection (args: WithoutId<ThangCollection>): Promise<ID> {
-    const {insertedId} = await (await this._collectionsP).collections.insertOne(args)
+  async createThangCollection (args: WithoutIdAndTimestamps<ThangCollection>): Promise<ID> {
+    const {insertedId} = await (await this._collectionsP).collections.insertOne({
+      ...args,
+      createdAt: new Date(),
+      updatedAt: null,
+      deletedAt: null
+    })
     return insertedId
   }
 
-  async createBooking (args: WithoutId<Booking>): Promise<ID> {
-    const {insertedId} = await (await this._collectionsP).bookings.insertOne(args)
+  async createBooking (args: WithoutIdAndTimestamps<Booking>): Promise<ID> {
+    const {insertedId} = await (await this._collectionsP).bookings.insertOne({
+      ...args,
+      createdAt: new Date(),
+      updatedAt: null,
+      deletedAt: null
+    })
     return insertedId
   }
 
-  async createUser (profile: WithoutId<User>): Promise<ID> {
-    const {insertedId} = await (await this._collectionsP).users.insertOne(profile)
-    return insertedId
-  }
-
-  async createVisitLogEntry (entry: WithoutId<VisitLogEntry>): Promise<ID> {
-    const {insertedId} = await (await this._collectionsP).visits.insertOne(entry)
+  async createUser (profile: WithoutIdAndTimestamps<User>): Promise<ID> {
+    const p = {
+      ...profile,
+      createdAt: new Date(),
+      updatedAt: null,
+      deletedAt: null
+    }
+    const {insertedId} = await (await this._collectionsP).users.insertOne(p)
     return insertedId
   }
 
@@ -235,7 +260,10 @@ export default class Db {
     const res = await (await this._collectionsP).users
       .updateOne(
         {_id: id},
-        {$set: profile}
+        {
+          $set: {...profile},
+          $currentDate: {updatedAt: true}
+        }
       )
     return {updated: res.modifiedCount}
   }
@@ -244,7 +272,10 @@ export default class Db {
     const res = await (await this._collectionsP).thangs
       .updateOne(
         {_id: thang},
-        {$addToSet: {users: user}}
+        {
+          $addToSet: {users: user},
+          $currentDate: {updatedAt: true}
+        }
       )
     return {updated: res.modifiedCount}
   }
@@ -252,23 +283,28 @@ export default class Db {
   async userThangs (id: ID): Promise<Thang[]> {
     return (await this._collectionsP).thangs
       .find({owners: id, deleted: false})
+      .sort('createdAt', 1)
       .toArray()
   }
 
   async collectionThangs (id: ID): Promise<Thang[]> {
     return (await this._collectionsP).thangs
       .find({collection: id, deleted: false})
+      .sort('createdAt', 1)
       .toArray()
   }
 
   async collectionOwners (id: ID): Promise<User[]> {
-    return await (await this._collectionsP).collections
+    const cs = await (await this._collectionsP)
+
+    return cs
+      .collections
       .aggregate([
         {$match: {_id: id, deleted: false}},
         {$unwind: '$owners'},
         {
           $lookup: {
-            from: 'users',
+            from: cs.users.collectionName,
             localField: 'owners',
             foreignField: '_id',
             as: 'owners'
@@ -281,13 +317,14 @@ export default class Db {
   }
 
   async thangOwners (id: ID): Promise<User[]> {
-    return await (await this._collectionsP).thangs
+    const cs = await (await this._collectionsP)
+    return await cs.thangs
       .aggregate([
         {$match: {_id: id, deleted: false}},
         {$unwind: '$owners'},
         {
           $lookup: {
-            from: 'users',
+            from: cs.users.collectionName,
             localField: 'owners',
             foreignField: '_id',
             as: 'owners'
@@ -300,13 +337,14 @@ export default class Db {
   }
 
   async thangUsers (id: ID): Promise<User[]> {
-    return await (await this._collectionsP).thangs
+    const cs = await (await this._collectionsP)
+    return await cs.thangs
       .aggregate([
         {$match: {_id: id, deleted: false}},
         {$unwind: '$users'},
         {
           $lookup: {
-            from: 'users',
+            from: cs.users.collectionName,
             localField: 'users',
             foreignField: '_id',
             as: 'users'
@@ -353,6 +391,7 @@ export default class Db {
             }
           )
           : thangF)
+      .sort('createdAt', 1)
       .toArray()
   }
 
@@ -369,12 +408,14 @@ export default class Db {
               ]
             })
           : ownerF)
+      .sort('createdAt', 1)
       .toArray()
   }
 
   async userCollections (id: ID): Promise<ThangCollection[]> {
     return (await this._collectionsP).collections
       .find({owners: id, deleted: false})
+      .sort('createdAt', 1)
       .toArray()
   }
 
@@ -383,7 +424,10 @@ export default class Db {
       .bookings
       .updateOne(
         {_id: id},
-        {$set: {deleted: true}}
+        {
+          $set: {deleted: true},
+          $currentDate: {deletedAt: true}
+        }
       )
     return {deleted: res.modifiedCount}
   }
@@ -393,31 +437,43 @@ export default class Db {
       .thangs
       .updateOne(
         {_id: id},
-        {$set: {deleted: true}}
+        {
+          $set: {deleted: true},
+          $currentDate: {deletedAt: true}
+        }
       )
     return {deleted: res.modifiedCount}
   }
 
   async deleteUser (id: ID): Promise<{| deleted: number |}> {
     const email = `${id.toHexString()}@thang.io`
-    const {updated} = await this.updateUser(id, {
-      email,
-      deleted: true,
-      familyName: null,
-      givenName: null,
-      timezone: config.get('defaultTimezone'),
-      profile: {
-        name: 'Deleted',
-        nickname: 'Deleted',
-        picture: null,
-        userId: id.toHexString(),
-        email,
-        emailVerified: false,
-        givenName: null,
-        familyName: null
-      }
-    })
-    return {deleted: updated}
+    const res = await (await this._collectionsP).users
+      .updateOne(
+        {_id: id},
+        {
+          $set: {
+            email,
+            deleted: true,
+            familyName: null,
+            givenName: null,
+            timezone: config.get('defaultTimezone'),
+            profile: {
+              name: 'Deleted',
+              nickname: 'Deleted',
+              picture: null,
+              userId: id.toHexString(),
+              email,
+              emailVerified: false,
+              givenName: null,
+              familyName: null
+            }
+          },
+          $currentDate: {
+            deletedAt: true
+          }
+        }
+      )
+    return {deleted: res.modifiedCount}
   }
 
   async deleteThangCollection (id: ID): Promise<{| deleted: number |}> {
@@ -425,7 +481,10 @@ export default class Db {
       .collections
       .updateOne(
         {_id: id},
-        {$set: {deleted: true}}
+        {
+          $set: {deleted: true},
+          $currentDate: {deletedAt: true}
+        }
       )
     return {deleted: res.modifiedCount}
   }
@@ -503,7 +562,10 @@ export type User = {|
   givenName: ?string,
   familyName: ?string,
   timezone: string,
-  profile: Profile
+  profile: Profile,
+  createdAt: Date,
+  updatedAt: ?Date,
+  deletedAt: ?Date
 |}
 
 export type Thang = {|
@@ -513,14 +575,20 @@ export type Thang = {|
   owners: ID[],
   users: ID[],
   collection: ?ID,
-  timezone: string
+  timezone: string,
+  createdAt: Date,
+  updatedAt: ?Date,
+  deletedAt: ?Date
 |}
 
 export type ThangCollection = {|
   _id: ID,
   deleted: boolean,
   name: string,
-  owners: ID[]
+  owners: ID[],
+  createdAt: Date,
+  updatedAt: ?Date,
+  deletedAt: ?Date
 |}
 
 export type Booking = {|
@@ -529,14 +597,12 @@ export type Booking = {|
   to: Date,
   deleted: boolean,
   owner: ID,
-  thang: ID
-|}
-
-export type VisitLogEntry = {|
-  _id: ID,
   thang: ID,
-  user: ID,
-  time: Date
+  createdAt: Date,
+  updatedAt: ?Date,
+  deletedAt: ?Date
 |}
 
-export type WithoutId<V> = $Diff<V, { _id: ID }>
+// export type WithoutId<V> = $Diff<V, { _id: ID }>
+
+export type WithoutIdAndTimestamps<V> = $Diff<V, { _id: ID, createdAt: Date, updatedAt: ?Date, deletedAt: ?Date }>

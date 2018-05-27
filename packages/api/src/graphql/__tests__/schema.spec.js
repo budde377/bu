@@ -3,8 +3,7 @@ import { graphql, parse } from 'graphql'
 import { subscribe } from 'graphql/subscription'
 import schema from '../schema'
 import faker from 'faker'
-import type { User, Thang, Booking, ThangCollection, WithoutId } from '../../db'
-import DB from '../../db'
+import DB, { type User, type Thang, type Booking, type ThangCollection, type WithoutIdAndTimestamps } from '../../db'
 import { userPicture } from '../../util/communications'
 import { dtToTimestamp } from '../../util/dt'
 import * as auth from '../../auth'
@@ -15,7 +14,7 @@ function timeout (t) {
   return new Promise(resolve => setTimeout(() => resolve(), t))
 }
 
-function fakeUser (): WithoutId<User> {
+function fakeUser (): WithoutIdAndTimestamps<User> {
   const givenName = faker.name.firstName()
   const familyName = faker.name.lastName()
   const email = faker.internet.email()
@@ -106,9 +105,6 @@ describe('schema', () => {
 
   beforeAll(async () => {
     db = new DB(`jest-test-db-${faker.random.uuid()}`)
-  })
-  afterAll(async () => {
-    console.log(await DB.dbs())
   })
   beforeEach(async () => {
     user1 = await createUser()
@@ -831,6 +827,12 @@ describe('schema', () => {
       const result = await graphql(schema, deleteBooking(booking._id.toHexString()), {}, buildContext(user2))
       expect(result).toEqual({data: {deleteBooking: {deleted: 1}}})
     })
+    it('should succeed when already deleted', async () => {
+      const result = await graphql(schema, deleteBooking(booking._id.toHexString()), {}, buildContext(user2))
+      expect(result).toEqual({data: {deleteBooking: {deleted: 1}}})
+      const result2 = await graphql(schema, deleteBooking(booking._id.toHexString()), {}, buildContext(user2))
+      expect(result2).toEqual({data: {deleteBooking: {deleted: 0}}})
+    })
     it('should succeed no thang', async () => {
       const result = await graphql(schema, deleteBooking('foobar'), {}, buildContext(user2))
       expect(result).toEqual({data: {deleteBooking: {deleted: 0}}})
@@ -873,6 +875,12 @@ describe('schema', () => {
     it('should succeed when owner', async () => {
       const result = await graphql(schema, deleteThang(thang._id.toHexString()), {}, buildContext(user1))
       expect(result).toEqual({data: {deleteThang: {deleted: 1}}})
+    })
+    it('should succeed when already deleted', async () => {
+      const result = await graphql(schema, deleteThang(thang._id.toHexString()), {}, buildContext(user1))
+      expect(result).toEqual({data: {deleteThang: {deleted: 1}}})
+      const result2 = await graphql(schema, deleteThang(thang._id.toHexString()), {}, buildContext(user1))
+      expect(result2).toEqual({data: {deleteThang: {deleted: 0}}})
     })
     it('should succeed no thang', async () => {
       const result = await graphql(schema, deleteThang('Foobar'), {}, buildContext(user2))
@@ -1081,7 +1089,7 @@ describe('schema', () => {
       await graphql(schema, deleteUser(user1._id.toHexString()), {}, buildContext(user1))
       const result = await graphql(schema, deleteUser(user1._id.toHexString()), {}, buildContext(user1))
       // $FlowFixMe
-      expect(auth.deleteUser.mock.calls).toEqual([[user1.profile.userId], [user1.profile.userId]])
+      expect(auth.deleteUser.mock.calls).toEqual([[user1.profile.userId]])
       expect(await db.user(user1._id)).toBeNull()
       expect(result).toEqual({
         data: {
@@ -1128,57 +1136,18 @@ describe('schema', () => {
       const result = await graphql(schema, deleteThangCollection(collection._id.toHexString()), {}, buildContext(user1))
       expect(result).toEqual({data: {deleteThangCollection: {deleted: 1}}})
     })
+    it('should succeed when already deleted', async () => {
+      const result = await graphql(schema, deleteThangCollection(collection._id.toHexString()), {}, buildContext(user1))
+      expect(result).toEqual({data: {deleteThangCollection: {deleted: 1}}})
+      const result2 = await graphql(schema, deleteThangCollection(collection._id.toHexString()), {}, buildContext(user1))
+      expect(result2).toEqual({data: {deleteThangCollection: {deleted: 0}}})
+    })
     it('should succeed no thang', async () => {
       const result = await graphql(schema, deleteThangCollection('Foobar'), {}, buildContext(user2))
       expect(result).toEqual({data: {deleteThangCollection: {deleted: 0}}})
     })
   })
-  describe('mutation: visitTang', () => {
-    const visitThang = (id: string) => `
-      mutation {
-        visitThang(id: "${id}") {
-          id
-          thang {
-            id
-          }
-        }
-      }
-    `
-    let thang: Thang
-    beforeEach(async () => {
-      const id = await db.createThang({
-        owners: [user1._id],
-        deleted: false,
-        users: [user1._id],
-        timezone: user1.timezone,
-        name: 'Foobar',
-        collection: null
-      })
-      const b = await db.thang(id)
-      if (!b) {
-        throw new Error('WTF')
-      }
-      thang = b
-    })
-    it('should fail on not logged in', async () => {
-      const result = await graphql(schema, visitThang(thang._id.toHexString()), {}, {})
-      // $FlowFixMe
-      expect(result).toFailWithCode('USER_NOT_LOGGED_IN')
-    })
-    it('should fail on no such thang', async () => {
-      const result = await graphql(schema, visitThang('foobar'), {}, buildContext(user2))
-      // $FlowFixMe
-      expect(result).toFailWithCode('NOT_FOUND')
-    })
-    it('should succeed when owner', async () => {
-      // $FlowFixMe
-      const result = await graphql(schema, visitThang(thang._id.toHexString()), {}, buildContext(user1))
-      expect(result.data).toBeTruthy()
-      expect(result.data.visitThang.thang).toEqual({
-        id: thang._id.toHexString()
-      })
-    })
-  })
+
   describe('subscription: bookingsChange', () => {
     jest.setTimeout(10000)
     const bookingsChange = (id: string, from, to) => parse(`

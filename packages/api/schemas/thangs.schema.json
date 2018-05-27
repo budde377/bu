@@ -7,9 +7,22 @@
     "owners",
     "users",
     "timezone",
-    "collection"
+    "collection",
+    "createdAt",
+    "updatedAt",
+    "deletedAt"
   ],
   "properties": {
+    "createdAt": {
+      "bsonType": "date"
+    },
+    "deletedAt": {
+      "bsonType": ["date", "null"]
+    },
+    "updatedAt": {
+      "bsonType": ["date", "null"]
+    },
+
     "_id": {
       "bsonType": "objectId"
     },

@@ -9,7 +9,7 @@ import { dtToTimestamp, timestampToDt } from '../util/dt'
 import * as auth from '../auth'
 import type { UserProfile } from '../auth'
 import type { Dt } from '../util/dt'
-import type { Booking, Change, ThangCollection, User, VisitLogEntry } from '../db'
+import type { Booking, Change, ThangCollection, User } from '../db'
 
 export type CustomErrorCode =
   'USER_NOT_LOGGED_IN'
@@ -168,7 +168,6 @@ type Resolvers = {|
     createThangCollection: Resolver<void, { name: string }, ThangCollection>,
     deleteThang: Resolver<void, { id: string }, DeleteResult>,
     deleteBooking: Resolver<void, { id: string }, DeleteResult>,
-    visitThang: Resolver<void, { id: string }, VisitLogEntry>,
     deleteThangCollection: Resolver<void, { id: string }, DeleteResult>,
     deleteUser: Resolver<void, { id: string }, DeleteResult>,
     sendVerificationEmail: Resolver<void, void, SentResult>,
@@ -216,11 +215,6 @@ type Resolvers = {|
     id: Resolver<ThangCollection, void, string>,
     thangs: Resolver<ThangCollection, void, Thang[]>,
     owners: Resolver<ThangCollection, void, User[]>
-  |},
-  VisitLogEntry: {|
-    id: Resolver<VisitLogEntry, void, string>,
-    thang: Resolver<VisitLogEntry, void, ?Thang>,
-    user: Resolver<VisitLogEntry, void, ?User>
   |}
 |}
 
@@ -328,8 +322,9 @@ const resolvers: Resolvers = {
     async owners ({_id}, _, {db}) {
       return await db.thangOwners(_id)
     },
-    users ({_id}, _, {db}) {
-      return db.thangUsers(_id)
+    async users ({_id}, _, {db}) {
+      const r = await db.thangUsers(_id)
+      return r
     }
   },
   ThangCollection: {
@@ -339,17 +334,6 @@ const resolvers: Resolvers = {
     },
     async owners ({_id}, _, {db}) {
       return await db.collectionOwners(_id)
-    }
-  },
-  VisitLogEntry: {
-    id: ({_id}) => _id.toHexString(),
-    async thang ({thang: id}, _, {db}) {
-      const thang = await db.thang(id)
-      return thang
-    },
-    async user ({user: id}, _, {db}) {
-      const user = await db.user(id)
-      return user
     }
   },
   Mutation: {
@@ -404,9 +388,13 @@ const resolvers: Resolvers = {
       }
       return assert(db.user(user._id))
     }),
-    deleteUser: checkUserLoggedIn(async (ctx, {id}, {user}, db) => {
-      if (id !== user._id.toHexString()) {
+    deleteUser: checkUserLoggedIn(async (ctx, {id}, {user: contextUser}, db) => {
+      if (id !== contextUser._id.toHexString()) {
         throw new CustomError('Can\'t update user', 'INSUFFICIENT_PERMISSIONS')
+      }
+      const user = await db.user(contextUser._id)
+      if (!user || user.deleted) {
+        return ({deleted: 0})
       }
       const [collections, thangs] = await Promise.all([
         db.userCollections(user._id),
@@ -437,8 +425,8 @@ const resolvers: Resolvers = {
           deleted: false,
           timezone
         })
-        const t: Thang = await assert(db.thang(id))
-        return t
+        const r = await assert(db.thang(id))
+        return r
       }),
     createThangCollection:
       checkEmailVerified(async (ctx, args, {user}: UserProfile, db) => {
@@ -495,12 +483,6 @@ const resolvers: Resolvers = {
             'INSUFFICIENT_PERMISSIONS')
         }
         return db.deleteThangCollection(t._id)
-      }),
-    visitThang:
-      checkUserLoggedIn(async (ctx, {id}, {user}: UserProfile, db: Db) => {
-        const t = await validateThang(db, id)
-        const eId = await db.createVisitLogEntry({thang: t._id, user: user._id, time: new Date()})
-        return assert(db.visitLogEntry(eId))
       })
   }
 }

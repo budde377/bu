@@ -4,11 +4,23 @@
   "required": [
     "_id",
     "name",
-    "owners"
+    "owners",
+    "createdAt",
+    "updatedAt",
+    "deletedAt"
   ],
   "properties": {
     "_id": {
       "bsonType": "objectId"
+    },
+    "createdAt": {
+      "bsonType": "date"
+    },
+    "deletedAt": {
+      "bsonType": ["date", "null"]
+    },
+    "updatedAt": {
+      "bsonType": ["date", "null"]
     },
     "name": {
       "bsonType": "string"
