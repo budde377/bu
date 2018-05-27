@@ -5,11 +5,12 @@ import moment from 'moment-timezone'
 import Db, { type Thang, type ID } from '../db'
 // $FlowFixMe Its OK flow... Good boy.
 import typeDefs from '../../graphql/schema.graphqls'
-import { dtToTimestamp, timestampToDt } from '../util/dt'
+import { now, dtToTimestamp, timestampToDt, timestampToWeekday, daysDiff, startOfDay, addDay } from '../util/dt'
 import * as auth from '../auth'
 import type { UserProfile } from '../auth'
 import type { Dt } from '../util/dt'
 import type { Booking, Change, ThangCollection, User } from '../db'
+import * as array from '../util/array'
 
 export type CustomErrorCode =
   'USER_NOT_LOGGED_IN'
@@ -119,19 +120,83 @@ function validateExpired (thang: Thang, from: Dt) {
   }
 }
 
+function validateSingleDt (from: Dt, msg: string): number {
+  const ts = dtToTimestamp(from)
+  if (typeof ts !== 'number') {
+    throw new CustomError(msg, 'INVALID_INPUT')
+  }
+  return ts
+}
+
 function validateDt (from: Dt, to: Dt): { to: number, from: number } {
-  const fromTimestamp = dtToTimestamp(from)
-  if (typeof fromTimestamp !== 'number') {
-    throw new CustomError('Invalid from timestamp', 'INVALID_INPUT')
-  }
-  const toTimestamp = dtToTimestamp(to)
-  if (typeof toTimestamp !== 'number') {
-    throw new CustomError('Invalid to timestamp', 'INVALID_INPUT')
-  }
+  const fromTimestamp = validateSingleDt(from, 'Invalid from timestamp')
+  const toTimestamp = validateSingleDt(to, 'Invalid to timestamp')
   if (fromTimestamp >= toTimestamp) {
     throw new CustomError('From must be before to', 'INVALID_INPUT')
   }
   return {from: fromTimestamp, to: toTimestamp}
+}
+
+async function validateTimeAgainstThang (db: Db, thang: Thang, user: User, from: number, to: number) {
+  if (thang.range.last && to > thang.range.last) {
+    throw new CustomError('to must not be later than last in range', 'INVALID_INPUT')
+  }
+  if (thang.range.first && from < thang.range.first) {
+    throw new CustomError('to must not be later than last in range', 'INVALID_INPUT')
+  }
+  const wdf = timestampToWeekday(from)
+  if (!thang.weekdays[wdf]) {
+    throw new CustomError('Weekday on from is disabled', 'INVALID_INPUT')
+  }
+  const wdt = timestampToWeekday(to)
+  if (!thang.weekdays[wdt]) {
+    throw new CustomError('Weekday on to is disabled', 'INVALID_INPUT')
+  }
+  if (thang.userRestrictions.maxBookingMinutes) {
+    const userBookings = await db.userThangBookings(thang._id, user._id, {from: now()})
+    const used = userBookings.reduce((acc, {from, to}) => acc + (to - from), to - from)
+    if (used / (1000 * 60)) {
+      throw new CustomError('Max booking minutes exceeded', 'INVALID_INPUT')
+    }
+  }
+  if (thang.userRestrictions.maxDailyBookingMinutes) {
+    const userBookings = await db.userThangBookings(thang._id, user._id, {
+      from: startOfDay(from),
+      to: startOfDay(to + 24 * 60 * 60 * 1000)
+    })
+    const usage: { [string]: number } = [...userBookings, {from, to}]
+      .reduce(
+        (acc, {from, to}) => {
+          const d = daysDiff(startOfDay(to), startOfDay(from)) + 1
+          return array
+            .range(d)
+            .reduce((acc, offset: number) => {
+              const f = startOfDay(addDay(from, offset))
+              const t = startOfDay(addDay(from, offset + 1))
+              const value = Math.min(t, to) - Math.max(f, from)
+              const fs = f.toString(10)
+              return {...acc, [fs]: (acc[fs] || 0) + value}
+            }, acc)
+        }, {})
+    const limit = thang.userRestrictions.maxDailyBookingMinutes * 60 * 1000
+    const overUsed = Object.keys(usage).find(k => usage[k] > limit)
+    if (overUsed) {
+      throw new CustomError('Max daily booking minutes exceeded', 'INVALID_INPUT')
+    }
+  }
+}
+
+function valdiateSlots (thang: Thang, from: Dt, to: Dt) {
+  const fromMinutes = from.minute + from.hour * 60
+  const d1 = (fromMinutes - thang.slots.start) / thang.slots.size
+  if (d1 % 1 !== 0 || d1 > thang.slots.num) {
+    throw new CustomError('Invalid from', 'INVALID_INPUT')
+  }
+  const toMinutes = to.minute + to.hour * 60
+  const d2 = (toMinutes - thang.slots.start) / thang.slots.size
+  if (d2 % 1 !== 0 || d2 > thang.slots.num) {
+    throw new CustomError('Invalid to', 'INVALID_INPUT')
+  }
 }
 
 async function validateOverlap (db: Db, id: ID, from: number, to: number): Promise<void> {
@@ -173,7 +238,19 @@ type Resolvers = {|
     sendVerificationEmail: Resolver<void, void, SentResult>,
     sendResetPasswordMail: Resolver<void, void, SentResult>,
     updateUser: Resolver<void, { id: string, givenName: ?string, familyName: ?string, timezone: ?string }, User>,
-    updateThang: Resolver<void, { id: string, name: ?string, timezone: ?string }, Thang>
+    updateThang: Resolver<void, {
+      id: string,
+      name: ?string,
+      timezone: ?string,
+      weekdays: ?{| mon: boolean, tue: boolean, wed: boolean, thu: boolean, fri: boolean, sat: boolean, sun: boolean |},
+      range: ?{| first: ?Dt, last: ?Dt |},
+      userRestrictions: ?{| maxBookingMinutes: number, maxDailyBookingMinutes: number |},
+      slots: ?{| size: number, start: number, num: number |}
+    }, Thang>
+  |},
+  RangeRules: {|
+    first: Resolver<{ first: ?Date, last: ?Date }, void, ?Dt>,
+    last: Resolver<{ first: ?Date, last: ?Date }, void, ?Dt>
   |},
   Query: {|
     thang: Resolver<void, { id: string }, ?Thang>,
@@ -336,11 +413,17 @@ const resolvers: Resolvers = {
       return await db.collectionOwners(_id)
     }
   },
+  RangeRules: {
+    first: ({first: date}) => date && timestampToDt(date.getTime()),
+    last: ({last: date}) => date && timestampToDt(date.getTime())
+  },
   Mutation: {
     createBooking:
       checkEmailVerified(async (ctx, args, {user}: UserProfile, db) => {
         const t = await validateThang(db, args.thang)
         const {from, to} = validateDt(args.from, args.to)
+        await validateTimeAgainstThang(db, t, user, from, to)
+        await valdiateSlots(t, args.to, args.from)
         await validateExpired(t, args.from)
         await validateOverlap(db, t._id, from, to)
         const id = await db.createBooking({
@@ -390,7 +473,7 @@ const resolvers: Resolvers = {
         return assert(db.user(user._id))
       }),
     updateThang:
-      checkEmailVerified(async (ctx, {id, name, timezone}, {user}, db) => {
+      checkEmailVerified(async (ctx, {id, name, timezone, weekdays, range, userRestrictions, slots}, {user}, db) => {
         const i = db.id(id)
         if (!i) {
           throw new CustomError('Thang not found', 'NOT_FOUND')
@@ -412,6 +495,32 @@ const resolvers: Resolvers = {
         if (typeof timezone === 'string') {
           validateTimezone(timezone)
           options.timezone = timezone
+        }
+        if (weekdays) {
+          options.weekdays = weekdays
+        }
+        if (userRestrictions) {
+          if (userRestrictions.maxBookingMinutes < 0 || userRestrictions.maxDailyBookingMinutes < 0) {
+            throw new CustomError('Invalid userRestrictions', 'INVALID_INPUT')
+          }
+          options.userRestrictions = userRestrictions
+        }
+        if (slots) {
+          if (slots.size <= 0 || slots.start < 0 || slots.num <= 0) {
+            throw new CustomError('Invalid slots', 'INVALID_INPUT')
+          }
+          if (slots.size * slots.num > 24 * 60) {
+            throw new CustomError('Slots can not be longer than 24 hours', 'INVALID_INPUT')
+          }
+          options.slots = slots
+        }
+        if (range) {
+          const first = range.first && new Date(validateSingleDt(range.first, 'Invalid first time'))
+          const last = range.last && new Date(validateSingleDt(range.last, 'Invalid last time'))
+          if (first && last && first.getTime() > last.getTime()) {
+            throw new CustomError('First is after last', 'INVALID_INPUT')
+          }
+          options.range = {first, last}
         }
         if (Object.keys(options).length) {
           await db.updateThang(i, options)
@@ -454,6 +563,28 @@ const resolvers: Resolvers = {
           users: [user._id],
           collection: null,
           deleted: false,
+          range: {
+            first: null,
+            last: null
+          },
+          slots: {
+            num: 24,
+            size: 60,
+            start: 0
+          },
+          userRestrictions: {
+            maxBookingMinutes: 0,
+            maxDailyBookingMinutes: 0
+          },
+          weekdays: {
+            mon: true,
+            tue: true,
+            wed: true,
+            thu: true,
+            fri: true,
+            sat: true,
+            sun: true
+          },
           timezone
         })
         return await assert(db.thang(id))

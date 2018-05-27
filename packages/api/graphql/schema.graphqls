@@ -39,11 +39,43 @@ input ListBookingsInput {
     to: DateTimeInput!
 }
 
+type UserRestrictionRules {
+    maxBookingMinutes: Float!
+    maxDailyBookingMinutes: Float!
+}
+
+type WeekdayRules {
+    mon: Boolean!
+    tue: Boolean!
+    wed: Boolean!
+    thu: Boolean!
+    fri: Boolean!
+    sat: Boolean!
+    sun: Boolean!
+}
+
+type SlotRules {
+    size: Int!
+    start: Int!
+    num: Int!
+}
+
+type RangeRules {
+    first: DateTime
+    last: DateTime
+}
+
 type Thang {
     id: ID!
     name: String!
     owners: [User!]!
     users: [User!]!
+    slots: SlotRules!
+    weekdays: WeekdayRules!
+    range: RangeRules!
+    firstSlot: DateTime
+    lastSlot: DateTime
+    userRestrictions: UserRestrictionRules!
     bookings(input: ListBookingsInput): [Booking!]!
     collection: ThangCollection
     timezone: String!
@@ -69,6 +101,32 @@ type SentResult {
     sent: Int!
 }
 
+input WeekdayInput {
+    mon: Boolean!
+    tue: Boolean!
+    wed: Boolean!
+    thu: Boolean!
+    fri: Boolean!
+    sat: Boolean!
+    sun: Boolean!
+}
+
+input UserRestrictionInput {
+    maxBookingMinutes: Float!
+    maxDailyBookingMinutes: Float!
+}
+
+input SlotInput {
+    size: Int!
+    start: Int!
+    num: Int!
+}
+
+input RangeInput {
+    first: DateTimeInput,
+    last: DateTimeInput
+}
+
 type Mutation {
     createBooking(thang: ID!, from: DateTimeInput!, to: DateTimeInput!): Booking!
     createThang(name: String!, timezone: String): Thang!
@@ -80,7 +138,15 @@ type Mutation {
     sendResetPasswordMail: SentResult!
     updateUser(id: ID!, givenName: String, familyName: String, timezone: String): User!
     deleteUser(id: ID!): DeleteResult!
-    updateThang(id: ID!, name: String, timezone: String): Thang!
+    updateThang(
+        id: ID!,
+        name: String,
+        timezone: String,
+        weekdays: WeekdayInput,
+        range: RangeInput,
+        userRestrictions: UserRestrictionInput,
+        slots: SlotInput
+    ): Thang!
 }
 
 type ChangeBooking {

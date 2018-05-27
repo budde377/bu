@@ -407,6 +407,27 @@ export default class Db {
       .toArray()
   }
 
+  async userThangBookings (thang: ID, user: ID, time: {| from: number, to?: number |}): Promise<Booking[]> {
+    return (await this._collectionsP)
+      .bookings
+      .find({
+        $and: [
+          {
+            thang,
+            owner: user
+          },
+          typeof time.to !== 'number'
+            ? (
+              {
+                to: {$gt: new Date(time.from)}
+              })
+            : this._timeQuery({from: time.from, to: time.to})
+        ]
+      })
+      .sort('createdAt', 1)
+      .toArray()
+  }
+
   async userBookings (id: ID, time: ?{ from: number, to: number } = null): Promise<Booking[]> {
     const ownerF = {owner: id, deleted: false}
     return (await this._collectionsP).bookings
@@ -580,12 +601,36 @@ export type User = {|
   deletedAt: ?Date
 |}
 
+export type Weekdays = {|
+  mon: boolean,
+  tue: boolean,
+  wed: boolean,
+  thu: boolean,
+  fri: boolean,
+  sat: boolean,
+  sun: boolean
+|}
+
 export type Thang = {|
   _id: ID,
   deleted: boolean,
   name: string,
   owners: ID[],
   users: ID[],
+  slots: {|
+    size: number,
+    start: number,
+    num: number,
+  |},
+  weekdays: Weekdays,
+  range: {|
+    first: ?Date,
+    last: ?Date
+  |},
+  userRestrictions: {|
+    maxBookingMinutes: number,
+    maxDailyBookingMinutes: number,
+  |},
   collection: ?ID,
   timezone: string,
   createdAt: Date,

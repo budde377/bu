@@ -5,8 +5,9 @@ import schema from '../schema'
 import faker from 'faker'
 import DB, { type User, type Thang, type Booking, type ThangCollection, type WithoutIdAndTimestamps } from '../../db'
 import { userPicture } from '../../util/communications'
-import { dtToTimestamp } from '../../util/dt'
+import { dtToTimestamp, timestampToDt } from '../../util/dt'
 import * as auth from '../../auth'
+import type { Dt } from '../../util/dt'
 
 jest.mock('../../auth')
 
@@ -72,14 +73,43 @@ describe('schema', () => {
     return u
   }
 
-  const createThang = async (owner: User): Promise<Thang> => {
+  const createThang = async (
+    owner: User,
+    {
+      range = {
+        first: null,
+        last: null
+      },
+      weekdays = {
+        mon: true,
+        tue: true,
+        wed: true,
+        thu: true,
+        fri: true,
+        sat: true,
+        sun: true
+      },
+      userRestrictions = {
+        maxBookingMinutes: 0,
+        maxDailyBookingMinutes: 0
+      },
+      slots = {
+        num: 24 * 60,
+        size: 1,
+        start: 0
+      }
+    } : any = {}): Promise<Thang> => {
     const id = await db.createThang({
       name: faker.commerce.productName(),
       collection: null,
       owners: [owner._id],
       deleted: false,
       timezone: owner.timezone,
-      users: [owner._id]
+      users: [owner._id],
+      range: {first: range.first && new Date(dtToTimestamp(range.first) || 0), last: range.last && new Date(dtToTimestamp(range.last) || 0)},
+      slots,
+      userRestrictions,
+      weekdays
     })
     const t = await db.thang(id)
     if (!t) {
@@ -427,7 +457,29 @@ describe('schema', () => {
         deleted: false,
         timezone: user1.timezone,
         name: 'Foobar',
-        collection: null
+        collection: null,
+        range: {
+          first: null,
+          last: null
+        },
+        slots: {
+          num: 24,
+          size: 60,
+          start: 0
+        },
+        userRestrictions: {
+          maxBookingMinutes: 0,
+          maxDailyBookingMinutes: 0
+        },
+        weekdays: {
+          mon: true,
+          tue: true,
+          wed: true,
+          thu: true,
+          fri: true,
+          sat: true,
+          sun: true
+        }
       })
       const b = await db.thang(id)
       if (!b) {
@@ -545,9 +597,10 @@ describe('schema', () => {
 
   describe('mutation: createBooking', () => {
     let year = (new Date()).getFullYear()
-    const createBooking = (id: string = 'baz', from = `{hour: 1, minute: 1, day: 1, month: 1, year: ${year + 1}}`, to = `{hour: 2, minute: 1, day: 1, month: 1, year: ${year + 1}}`) => `
-    mutation {
-      createBooking(thang: "${id}", from: ${from}, to: ${to}) {
+
+    const source = `
+    mutation($thang: ID!, $from: DateTimeInput!, $to: DateTimeInput!){
+      createBooking(thang: $thang, from: $from, to: $to) {
         id
         from {
           hour
@@ -568,33 +621,84 @@ describe('schema', () => {
           id
         }
         thang {
-          bookings(input: {from: ${from}, to: ${to}}) {
+          bookings(input: {from: $from, to: $to}) {
             id
           }
         }
       }
     }
-  `
+    `
+
     it('should fail on not logged in', async () => {
-      const from = `{hour: 1, minute: 1, day: 27, month: 2, year: ${year + 2000}}`
-      const to = `{hour: 1, minute: 1, day: 30, month: 2, year: ${year + 2000}}`
-      const result = await graphql(schema, createBooking('bas', from, to), {}, buildContext())
+      const from = {
+        hour: 1,
+        minute: 1,
+        day: 27,
+        month: 2,
+        year: year + 2000
+      }
+      const to = {
+        hour: 1,
+        minute: 1,
+        day: 30,
+        month: 2,
+        year: year + 2000
+      }
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang: 'baz', from, to},
+        contextValue: buildContext()
+      })
       // $FlowFixMe
       expect(result).toFailWithCode('USER_NOT_LOGGED_IN')
     })
     it('should fail on invalid thang id', async () => {
-      const from = `{hour: 1, minute: 1, day: 27, month: 2, year: ${year + 2001}}`
-      const to = `{hour: 1, minute: 1, day: 30, month: 2, year: ${year + 2001}}`
-      const result = await graphql(schema, createBooking('bas', from, to), {}, buildContext(user1))
+      const from = {
+        hour: 1,
+        minute: 1,
+        day: 27,
+        month: 2,
+        year: year + 2001
+      }
+      const to = {
+        hour: 1,
+        minute: 1,
+        day: 30,
+        month: 2,
+        year: year + 2001
+      }
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang: 'baz', from, to},
+        contextValue: buildContext(user1)
+      })
       // $FlowFixMe
       expect(result).toFailWithCode('NOT_FOUND')
     })
     it('should create booking', async () => {
+      const from = {
+        hour: 1,
+        minute: 1,
+        day: 27,
+        month: 2,
+        year: year + 2002
+      }
+      const to = {
+        hour: 1,
+        minute: 1,
+        day: 28,
+        month: 2,
+        year: year + 2002
+      }
       // $FlowFixMe
-      const from = `{hour: 1, minute: 1, day: 27, month: 2, year: ${year + 2002}}`
-      const to = `{hour: 1, minute: 1, day: 28, month: 2, year: ${year + 2002}}`
-      // $FlowFixMe
-      const result = await graphql(schema, createBooking(thang1._id, from, to), {}, buildContext(user1))
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang: thang1._id.toHexString(), from, to},
+        contextValue: buildContext(user1)
+      })
       expect(result.data).toBeTruthy()
       expect(result.data.createBooking.from).toEqual({hour: 1, minute: 1, day: 27, month: 2, year: year + 2002})
       expect(result.data.createBooking.to).toEqual({hour: 1, minute: 1, day: 28, month: 2, year: year + 2002})
@@ -602,115 +706,723 @@ describe('schema', () => {
       expect(result.data.createBooking.thang.bookings).toEqual([{id: result.data.createBooking.id}])
     })
     it('should create booking again', async () => {
+      const from = {
+        hour: 1,
+        minute: 1,
+        day: 27,
+        month: 2,
+        year: year + 2002
+      }
+      const to = {
+        hour: 1,
+        minute: 1,
+        day: 28,
+        month: 2,
+        year: year + 2002
+      }
       // $FlowFixMe
-      const from = `{hour: 1, minute: 1, day: 27, month: 2, year: ${year + 2002}}`
-      const to = `{hour: 1, minute: 1, day: 28, month: 2, year: ${year + 2002}}`
-      // $FlowFixMe
-      const result = await graphql(schema, createBooking(thang1._id.toHexString(), from, to), {}, buildContext(user1))
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang: thang1._id.toHexString(), from, to},
+        contextValue: buildContext(user1)
+      })
       expect(result.data).toBeTruthy()
       expect(result.data.createBooking.owner).toEqual({id: user1._id.toHexString()})
       expect(result.data.createBooking.thang.bookings).toEqual([{id: result.data.createBooking.id}])
       // $FlowFixMe
       await db.deleteBooking(db.id(result.data.createBooking.id))
       // $FlowFixMe
-      const result2 = await graphql(schema, createBooking(thang1._id.toHexString(), from, to), {}, buildContext(user1))
+      const result2 = await graphql({
+        schema,
+        source,
+        variableValues: {thang: thang1._id.toHexString(), from, to},
+        contextValue: buildContext(user1)
+      })
       expect(result2.data).toBeTruthy()
       expect(result2.data.createBooking.owner).toEqual({id: user1._id.toHexString()})
       expect(result2.data.createBooking.thang.bookings).toEqual([{id: result2.data.createBooking.id}])
     })
     it('should fail on email not verified', async () => {
-      const result = await graphql(schema, createBooking(), {}, buildContext(user1, {emailVerified: false}))
+      const from = {
+        hour: 1,
+        minute: 1,
+        day: 27,
+        month: 2,
+        year: year + 2002
+      }
+      const to = {
+        hour: 1,
+        minute: 1,
+        day: 28,
+        month: 2,
+        year: year + 2002
+      }
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang: thang1._id.toHexString(), from, to},
+        contextValue: buildContext(user1, {emailVerified: false})
+      })
       // $FlowFixMe
       expect(result).toFailWithCode('USER_EMAIL_NOT_VERIFIED')
     })
     it('should fail invalid from date', async () => {
-      const from = `{hour: 1, minute: 1, day: 30, month: 2, year: ${year + 2010}}`
-      const to = `{hour: 1, minute: 1, day: 30, month: 3, year: ${year + 2010}}`
-      const result = await graphql(schema, createBooking(thang1._id.toHexString(), from, to), {}, buildContext(user1))
+      const from = {hour: 1, minute: 1, day: 30, month: 2, year: year + 2010}
+      const to = {hour: 1, minute: 1, day: 30, month: 3, year: year + 2010}
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang: thang1._id.toHexString(), from, to},
+        contextValue: buildContext(user1)
+      })
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
     it('should fail invalid to date', async () => {
-      const from = `{hour: 1, minute: 1, day: 27, month: 2, year: ${year + 2010}}`
-      const to = `{hour: 1, minute: 1, day: 30, month: 2, year: ${year + 2010}}`
-      const result = await graphql(schema, createBooking(thang1._id.toHexString(), from, to), {}, buildContext(user1))
+      const from = {hour: 1, minute: 1, day: 27, month: 2, year: year + 2010}
+      const to = {hour: 1, minute: 1, day: 30, month: 2, year: year + 2010}
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang: thang1._id.toHexString(), from, to},
+        contextValue: buildContext(user1)
+      })
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
     it('should fail with from after to', async () => {
-      const from = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2010}}`
-      const to = `{hour: 1, minute: 1, day: 1, month: 1, year: ${year + 2010}}`
-      const result = await graphql(schema, createBooking(thang1._id.toHexString(), from, to), {}, buildContext(user1))
+      const from = {hour: 1, minute: 1, day: 1, month: 2, year: year + 2010}
+      const to = {hour: 1, minute: 1, day: 1, month: 1, year: year + 2010}
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang: thang1._id.toHexString(), from, to},
+        contextValue: buildContext(user1)
+      })
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
     it('should fail with from eq to to', async () => {
-      const from = `{hour: 1, minute: 1, day: 1, month: 1, year: ${year + 2010}}`
-      const to = `{hour: 1, minute: 1, day: 1, month: 1, year: ${year + 2010}}`
-      const result = await graphql(schema, createBooking(thang1._id.toHexString(), from, to), {}, buildContext(user1))
+      const from = {hour: 1, minute: 1, day: 1, month: 1, year: year + 2010}
+      const to = {hour: 1, minute: 1, day: 1, month: 1, year: year + 2010}
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang: thang1._id.toHexString(), from, to},
+        contextValue: buildContext(user1)
+      })
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
     it('should fail with overlap', async () => {
-      const from1 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2020}}`
-      const to1 = `{hour: 1, minute: 1, day: 2, month: 2, year: ${year + 2020}}`
-      const r1 = await graphql(schema, createBooking(thang1._id.toHexString(), from1, to1), {}, buildContext(user1))
+      const from1 = {hour: 1, minute: 1, day: 1, month: 2, year: year + 2020}
+      const to1 = {hour: 1, minute: 1, day: 2, month: 2, year: year + 2020}
+      const r1 = await graphql({
+        schema,
+        source,
+        variableValues: {thang: thang1._id.toHexString(), from: from1, to: to1},
+        contextValue: buildContext(user1)
+      })
       expect(r1.data).toBeTruthy()
-      const from2 = `{hour: 1, minute: 1, day: 1, month: 1, year: ${year + 2020}}`
-      const to2 = `{hour: 1, minute: 1, day: 1, month: 3, year: ${year + 2020}}`
-      const r2 = await graphql(schema, createBooking(thang1._id.toHexString(), from2, to2), {}, buildContext(user1))
+      const from2 = {hour: 1, minute: 1, day: 1, month: 1, year: year + 2020}
+      const to2 = {hour: 1, minute: 1, day: 1, month: 3, year: year + 2020}
+      const r2 = await graphql({
+        schema,
+        source,
+        variableValues: {thang: thang1._id.toHexString(), from: from2, to: to2},
+        contextValue: buildContext(user1)
+      })
       // $FlowFixMe
       expect(r2).toFailWithCode('DUPLICATE')
     })
     it('should fail with overlap 2', async () => {
-      const from1 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2021}}`
-      const to1 = `{hour: 1, minute: 1, day: 2, month: 2, year: ${year + 2021}}`
-      const r1 = await graphql(schema, createBooking(thang1._id.toHexString(), from1, to1), {}, buildContext(user1))
+      const from1 = {hour: 1, minute: 1, day: 1, month: 2, year: year + 2021}
+      const to1 = {hour: 1, minute: 1, day: 2, month: 2, year: year + 2021}
+      const r1 = await graphql({
+        schema,
+        source,
+        variableValues: {thang: thang1._id.toHexString(), from: from1, to: to1},
+        contextValue: buildContext(user1)
+      })
       expect(r1.data).toBeTruthy()
-      const from2 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2021}}`
-      const to2 = `{hour: 1, minute: 1, day: 2, month: 2, year: ${year + 2021}}`
-      const r2 = await graphql(schema, createBooking(thang1._id.toHexString(), from2, to2), {}, buildContext(user1))
+      const from2 = {hour: 1, minute: 1, day: 1, month: 2, year: year + 2021}
+      const to2 = {hour: 1, minute: 1, day: 2, month: 2, year: year + 2021}
+      const r2 = await graphql({
+        schema,
+        source,
+        variableValues: {thang: thang1._id.toHexString(), from: from2, to: to2},
+        contextValue: buildContext(user1)
+      })
       // $FlowFixMe
       expect(r2).toFailWithCode('DUPLICATE')
     })
     it('should fail with overlap 4', async () => {
-      const from1 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2023}}`
-      const to1 = `{hour: 1, minute: 1, day: 3, month: 2, year: ${year + 2023}}`
-      const r1 = await graphql(schema, createBooking(thang1._id.toHexString(), from1, to1), {}, buildContext(user1))
+      const from1 = {hour: 1, minute: 1, day: 1, month: 2, year: year + 2023}
+      const to1 = {hour: 1, minute: 1, day: 3, month: 2, year: year + 2023}
+      const r1 = await graphql({
+        schema,
+        source,
+        variableValues: {thang: thang1._id.toHexString(), from: from1, to: to1},
+        contextValue: buildContext(user1)
+      })
       expect(r1.data).toBeTruthy()
-      const from2 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2023}}`
-      const to2 = `{hour: 1, minute: 1, day: 2, month: 2, year: ${year + 2023}}`
-      const r2 = await graphql(schema, createBooking(thang1._id.toHexString(), from2, to2), {}, buildContext(user1))
+      const from2 = {hour: 1, minute: 1, day: 1, month: 2, year: year + 2023}
+      const to2 = {hour: 1, minute: 1, day: 2, month: 2, year: year + 2023}
+      const r2 = await graphql({
+        schema,
+        source,
+        variableValues: {thang: thang1._id.toHexString(), from: from2, to: to2},
+        contextValue: buildContext(user1)
+      })
       // $FlowFixMe
       expect(r2).toFailWithCode('DUPLICATE')
     })
     it('should fail with time passed', async () => {
-      const from1 = `{hour: 1, minute: 1, day: 1, month: 2, year: 2000}`
-      const to1 = `{hour: 1, minute: 1, day: 3, month: 2, year: 2000}`
-      const r1 = await graphql(schema, createBooking(thang1._id.toHexString(), from1, to1), {}, buildContext(user1))
+      const from1 = {hour: 1, minute: 1, day: 1, month: 2, year: 2000}
+      const to1 = {hour: 1, minute: 1, day: 3, month: 2, year: 2000}
+      const r1 = await graphql({
+        schema,
+        source,
+        variableValues: {thang: thang1._id.toHexString(), from: from1, to: to1},
+        contextValue: buildContext(user1)
+      })
       // $FlowFixMe
       expect(r1).toFailWithCode('INVALID_INPUT')
     })
     it('should succeed with close to overlap', async () => {
-      const from1 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2024}}`
-      const to1 = `{hour: 1, minute: 1, day: 3, month: 2, year: ${year + 2024}}`
-      const r1 = await graphql(schema, createBooking(thang1._id.toHexString(), from1, to1), {}, buildContext(user1))
+      const from1 = {hour: 1, minute: 1, day: 1, month: 2, year: year + 2024}
+      const to1 = {hour: 1, minute: 1, day: 3, month: 2, year: year + 2024}
+      const r1 = await graphql({
+        schema,
+        source,
+        variableValues: {thang: thang1._id.toHexString(), from: from1, to: to1},
+        contextValue: buildContext(user1)
+      })
       expect(r1.data).toBeTruthy()
-      const from2 = `{hour: 1, minute: 1, day: 3, month: 2, year: ${year + 2024}}`
-      const to2 = `{hour: 1, minute: 1, day: 6, month: 2, year: ${year + 2024}}`
-      const r2 = await graphql(schema, createBooking(thang1._id.toHexString(), from2, to2), {}, buildContext(user1))
+      const from2 = {hour: 1, minute: 1, day: 3, month: 2, year: year + 2024}
+      const to2 = {hour: 1, minute: 1, day: 6, month: 2, year: year + 2024}
+      const r2 = await graphql({
+        schema,
+        source,
+        variableValues: {thang: thang1._id.toHexString(), from: from2, to: to2},
+        contextValue: buildContext(user1)
+      })
       expect(r2.data).toBeTruthy()
     })
     it('should succeed with close to overlap 2', async () => {
-      const from1 = `{hour: 1, minute: 1, day: 3, month: 2, year: ${year + 2024}}`
-      const to1 = `{hour: 1, minute: 1, day: 6, month: 2, year: ${year + 2024}}`
-      const r1 = await graphql(schema, createBooking(thang1._id.toHexString(), from1, to1), {}, buildContext(user1))
+      const from1 = {hour: 1, minute: 1, day: 3, month: 2, year: year + 2024}
+      const to1 = {hour: 1, minute: 1, day: 6, month: 2, year: year + 2024}
+      const r1 = await graphql({
+        schema,
+        source,
+        variableValues: {thang: thang1._id.toHexString(), from: from1, to: to1},
+        contextValue: buildContext(user1)
+      })
       expect(r1.data).toBeTruthy()
-      const from2 = `{hour: 1, minute: 1, day: 1, month: 2, year: ${year + 2024}}`
-      const to2 = `{hour: 1, minute: 1, day: 3, month: 2, year: ${year + 2024}}`
-      const r2 = await graphql(schema, createBooking(thang1._id.toHexString(), from2, to2), {}, buildContext(user1))
+      const from2 = {hour: 1, minute: 1, day: 1, month: 2, year: year + 2024}
+      const to2 = {hour: 1, minute: 1, day: 3, month: 2, year: year + 2024}
+      const r2 = await graphql({
+        schema,
+        source,
+        variableValues: {thang: thang1._id.toHexString(), from: from2, to: to2},
+        contextValue: buildContext(user1)
+      })
       expect(r2.data).toBeTruthy()
     })
+    it('should not be possible to create booking on invalid weekday', async () => {
+      const weekdays = ({
+        mon: true,
+        tue: true,
+        wed: false,
+        thu: true,
+        fri: true,
+        sat: true,
+        sun: true
+      })
+      const {_id: thang} = await createThang(user1, {weekdays})
+      const from = {
+        hour: 10,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const to = {
+        hour: 11,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang, from, to},
+        contextValue: buildContext(user1)
+      })
+      // $FlowFixMe lol
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+    it('should not be possible to create booking on invalid weekday 2', async () => {
+      const weekdays = ({
+        mon: true,
+        tue: true,
+        wed: false,
+        thu: true,
+        fri: true,
+        sat: true,
+        sun: false
+      })
+      const {_id: thang} = await createThang(user1, {weekdays})
+      const from = {
+        hour: 10,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const to = {
+        hour: 11,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang, from, to},
+        contextValue: buildContext(user1)
+      })
+      // $FlowFixMe lol
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+    it('should not be possible to create booking on invalid weekday 3', async () => {
+      const weekdays = ({
+        mon: true,
+        tue: true,
+        wed: false,
+        thu: true,
+        fri: true,
+        sat: true,
+        sun: false
+      })
+      const {_id: thang} = await createThang(user1, {weekdays})
+      const from = {
+        hour: 10,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const to = {
+        hour: 11,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang, from, to},
+        contextValue: buildContext(user1)
+      })
+      // $FlowFixMe lol
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+    it('should not be possible to create booking after last', async () => {
+      const range = ({
+        last: {
+          hour: 11,
+          minute: 0,
+          day: 1,
+          month: 1,
+          year: 3000
+        },
+        first: null
+      })
+      const {_id: thang} = await createThang(user1, {range})
+      const from = {
+        hour: 10,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const to = {
+        hour: 12,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang, from, to},
+        contextValue: buildContext(user1)
+      })
+      // $FlowFixMe lol
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+    it('should not be possible to create booking before first', async () => {
+      const range = ({
+        first: {
+          hour: 11,
+          minute: 0,
+          day: 1,
+          month: 1,
+          year: 3000
+        },
+        last: null
+      })
+      const {_id: thang} = await createThang(user1, {range})
+      const from = {
+        hour: 10,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const to = {
+        hour: 12,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang, from, to},
+        contextValue: buildContext(user1)
+      })
+      // $FlowFixMe lol
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+    it('should not be possible to create booking exceeding daily limit', async () => {
+      const userRestrictions = ({
+        maxBookingMinutes: 0,
+        maxDailyBookingMinutes: 120
+      })
+      const {_id: thang} = await createThang(user1, {userRestrictions})
+      const from = {
+        hour: 10,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const to = {
+        hour: 12,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      await graphql({
+        schema,
+        source,
+        variableValues: {thang, from, to},
+        contextValue: buildContext(user1)
+      })
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang, from: {...from, hour: 13}, to: {...to, hour: 14}},
+        contextValue: buildContext(user1)
+      })
+      // $FlowFixMe lol
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+
+    it('should honor cross day', async () => {
+      const userRestrictions = ({
+        maxBookingMinutes: 0,
+        maxDailyBookingMinutes: 120
+      })
+      const {_id: thang} = await createThang(user1, {userRestrictions})
+      const from = {
+        hour: 23,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const to = {
+        hour: 2,
+        minute: 0,
+        day: 2,
+        month: 1,
+        year: 3000
+      }
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang, from, to},
+        contextValue: buildContext(user1)
+      })
+      // $FlowFixMe lol
+      expect(result.data).toBeTruthy()
+    })
+
+    it('should not be possible to create booking exceeding daily limit 2', async () => {
+      const userRestrictions = ({
+        maxBookingMinutes: 0,
+        maxDailyBookingMinutes: 120
+      })
+      const {_id: thang} = await createThang(user1, {userRestrictions})
+      const from = {
+        hour: 23,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const to = {
+        hour: 2,
+        minute: 1,
+        day: 2,
+        month: 1,
+        year: 3000
+      }
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang, from, to},
+        contextValue: buildContext(user1)
+      })
+      // $FlowFixMe lol
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+
+    it('should not be possible to create booking exceeding limit', async () => {
+      const userRestrictions = ({
+        maxBookingMinutes: 120,
+        maxDailyBookingMinutes: 0
+      })
+      const {_id: thang} = await createThang(user1, {userRestrictions})
+      const from = {
+        hour: 10,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const to = {
+        hour: 12,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      await graphql({
+        schema,
+        source,
+        variableValues: {thang, from, to},
+        contextValue: buildContext(user1)
+      })
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang, from: {...from, hour: 13}, to: {...to, hour: 14}},
+        contextValue: buildContext(user1)
+      })
+      // $FlowFixMe lol
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+
+    it('should not be possible to create booking exceeding limit 2', async () => {
+      const userRestrictions = ({
+        maxBookingMinutes: 120,
+        maxDailyBookingMinutes: 0
+      })
+      const {_id: thang} = await createThang(user1, {userRestrictions})
+      const from = {
+        hour: 10,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const to = {
+        hour: 12,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      await graphql({
+        schema,
+        source,
+        variableValues: {thang, from, to},
+        contextValue: buildContext(user1)
+      })
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang, from: {...from, day: 2}, to: {...to, day: 2}},
+        contextValue: buildContext(user1)
+      })
+      // $FlowFixMe lol
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+
+    it('should not be possible to create booking breaking slots', async () => {
+      const slots = ({
+        num: 12,
+        size: 40,
+        start: 0
+      })
+      const {_id: thang} = await createThang(user1, {slots})
+      const from = {
+        hour: 0,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const to = {
+        hour: 1,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang, from, to},
+        contextValue: buildContext(user1)
+      })
+      // $FlowFixMe lol
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+    it('should not be possible to create booking breaking slots 2', async () => {
+      const slots = ({
+        num: 12,
+        size: 40,
+        start: 0
+      })
+      const {_id: thang} = await createThang(user1, {slots})
+      const from = {
+        hour: 0,
+        minute: 10,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const to = {
+        hour: 1,
+        minute: 20,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang, from, to},
+        contextValue: buildContext(user1)
+      })
+      // $FlowFixMe lol
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+    it('should fail when exceeding number of slots', async () => {
+      const slots = ({
+        num: 1,
+        size: 40,
+        start: 0
+      })
+      const {_id: thang} = await createThang(user1, {slots})
+      const from = {
+        hour: 0,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const to = {
+        hour: 1,
+        minute: 20,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang, from, to},
+        contextValue: buildContext(user1)
+      })
+      // $FlowFixMe lol
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+
+    it('should allow for cross day', async () => {
+      const slots = ({
+        num: 36,
+        size: 40,
+        start: 0
+      })
+      const {_id: thang} = await createThang(user1, {slots})
+      const from = {
+        hour: 0,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const to = {
+        hour: 1,
+        minute: 20,
+        day: 2,
+        month: 1,
+        year: 3000
+      }
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang, from, to},
+        contextValue: buildContext(user1)
+      })
+      // $FlowFixMe lol
+      expect(result.data).toBeTruthy()
+    })
+
+    it('should be possible when choosing right stuff', async () => {
+      const slots = ({
+        num: 12,
+        size: 40,
+        start: 0
+      })
+      const {_id: thang} = await createThang(user1, {slots})
+      const from = {
+        hour: 0,
+        minute: 0,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const to = {
+        hour: 1,
+        minute: 20,
+        day: 1,
+        month: 1,
+        year: 3000
+      }
+      const result = await graphql({
+        schema,
+        source,
+        variableValues: {thang, from, to},
+        contextValue: buildContext(user1)
+      })
+      // $FlowFixMe lol
+      expect(result.data).toBeTruthy()
+    })
+
   })
   describe('mutation: createThang', () => {
     const createThang = ({tz = 'Europe/Copenhagen', name = 'Foobar'}: { name?: string, tz?: string } = {}) => `
@@ -859,7 +1571,29 @@ describe('schema', () => {
         deleted: false,
         timezone: user1.timezone,
         name: 'Foobar',
-        collection: null
+        collection: null,
+        range: {
+          first: null,
+          last: null
+        },
+        slots: {
+          num: 24,
+          size: 60,
+          start: 0
+        },
+        userRestrictions: {
+          maxBookingMinutes: 0,
+          maxDailyBookingMinutes: 0
+        },
+        weekdays: {
+          mon: true,
+          tue: true,
+          wed: true,
+          thu: true,
+          fri: true,
+          sat: true,
+          sun: true
+        }
       })
       const b = await db.thang(id)
       if (!b) {
@@ -1028,91 +1762,514 @@ describe('schema', () => {
     })
   })
   describe('mutation: updateThang', () => {
-    const updateThang = (props: { id: string, name?: string, timezone?: string }) => `
-      mutation {
-        updateThang(${Object.keys(props).map(k => `${k}: ${JSON.stringify(props[k])}`).join(', ')}) {
+    const source = `
+      mutation ut($id: ID!, $name: String, $timezone: String, $weekdays: WeekdayInput, $range: RangeInput, $slots: SlotInput, $userRestrictions: UserRestrictionInput) {
+        updateThang(id: $id, name: $name, timezone: $timezone, weekdays: $weekdays, range: $range, slots: $slots, userRestrictions: $userRestrictions) {
           name
           timezone
+          slots {
+            start
+            size
+            num
+          }
+          weekdays {
+            mon
+            tue
+            wed
+            thu
+            fri
+            sat
+            sun
+          }
+          range {
+            first {
+              hour
+              minute
+              day
+              year
+              month
+            }
+            last {
+              hour
+              minute
+              day
+              year
+              month
+            }
+          }
+          userRestrictions {
+            maxBookingMinutes
+            maxDailyBookingMinutes
+          }
         }
       }
     `
     it('should update nothing', async () => {
-      const result = await graphql(schema, updateThang({id: thang1._id.toHexString()}), {}, buildContext(user2))
+      const result = await graphql({
+        schema,
+        source,
+        contextValue: buildContext(user2),
+        variableValues: {id: thang1._id.toHexString()}
+      })
       expect(result).toEqual({
         data: {
           updateThang: {
             name: thang1.name,
-            timezone: thang1.timezone
+            timezone: thang1.timezone,
+            slots: thang1.slots,
+            range: {
+              first: null,
+              last: null
+            },
+            userRestrictions: thang1.userRestrictions,
+            weekdays: thang1.weekdays
           }
         }
       })
     })
     it('should update name', async () => {
       const name = 'FooBar2000'
-      const result = await graphql(schema, updateThang({
-        id: thang1._id.toHexString(),
-        name
-      }), {}, buildContext(user2))
+      const result = await graphql({
+        source, schema, contextValue: buildContext(user2), variableValues: {
+          id: thang1._id.toHexString(),
+          name
+        }
+      })
       expect(result).toEqual({
         data: {
           updateThang: {
             name,
-            timezone: thang1.timezone
+            timezone: thang1.timezone,
+            slots: thang1.slots,
+            range: {
+              first: null,
+              last: null
+            },
+            userRestrictions: thang1.userRestrictions,
+            weekdays: thang1.weekdays
           }
         }
       })
     })
     it('should fail on empty given name', async () => {
       const name = ''
-      const result = await graphql(schema, updateThang({
-        id: thang1._id.toHexString(),
-        name
-      }), {}, buildContext(user2))
+      const result = await graphql({
+        source, schema, contextValue: buildContext(user2), variableValues: {
+          id: thang1._id.toHexString(),
+          name
+        }
+      })
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
     it('should fail on empty given name 2', async () => {
       const name = ' '
-      const result = await graphql(schema, updateThang({
-        id: thang1._id.toHexString(),
-        name
-      }), {}, buildContext(user2))
+      const result = await graphql({
+        source, schema, contextValue: buildContext(user2), variableValues: {
+          id: thang1._id.toHexString(),
+          name
+        }
+      })
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
 
     it('should update timezone', async () => {
       const timezone = 'Europe/Copenhagen'
-      const result = await graphql(schema, updateThang({id: thang1._id.toHexString(), timezone}), {}, buildContext(user2))
+      const result = await graphql({
+        source, schema, contextValue: buildContext(user2), variableValues: {
+          id: thang1._id.toHexString(),
+          timezone
+        }
+      })
       expect(result).toEqual({
         data: {
           updateThang: {
             name: thang1.name,
-            timezone
+            timezone,
+            slots: thang1.slots,
+            range: {
+              first: null,
+              last: null
+            },
+            userRestrictions: thang1.userRestrictions,
+            weekdays: thang1.weekdays
           }
         }
       })
     })
     it('should fail on invalid timezone', async () => {
       const timezone = 'Foo/Bar'
-      const result = await graphql(schema, updateThang({id: thang1._id.toHexString(), timezone}), {}, buildContext(user2))
+      const result = await graphql({
+        source, schema, contextValue: buildContext(user2), variableValues: {
+          id: thang1._id.toHexString(),
+          timezone
+        }
+      })
+      // $FlowFixMe
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+    it('should update weekday', async () => {
+      const weekdays = {
+        mon: true,
+        tue: false,
+        wed: true,
+        thu: false,
+        fri: true,
+        sat: false,
+        sun: true
+      }
+      const result = await graphql({
+        source, schema,
+        contextValue: buildContext(user2),
+        variableValues: {
+          id: thang1._id.toHexString(),
+          weekdays
+        }
+      })
+      expect(result).toEqual({
+        data: {
+          updateThang: {
+            name: thang1.name,
+            weekdays,
+            timezone: thang1.timezone,
+            slots: thang1.slots,
+            range: {
+              first: null,
+              last: null
+            },
+            userRestrictions: thang1.userRestrictions,
+          }
+        }
+      })
+    })
+    it('should update first slot', async () => {
+      const first = {
+        hour: 1,
+        minute: 10,
+        day: 1,
+        month: 1,
+        year: 1
+      }
+      const result = await graphql({
+        source, schema,
+        contextValue: buildContext(user2),
+        variableValues: {
+          id: thang1._id.toHexString(),
+          range: {first}
+        }
+      })
+      expect(result).toEqual({
+        data: {
+          updateThang: {
+            name: thang1.name,
+            timezone: thang1.timezone,
+            weekdays: thang1.weekdays,
+            range: {
+              first: first,
+              last: null
+            },
+            slots: thang1.slots,
+            userRestrictions: thang1.userRestrictions,
+          }
+        }
+      })
+    })
+    it('should fail on invalid first slot', async () => {
+      const first = {
+        hour: 1,
+        minute: 10,
+        day: 1,
+        month: 13,
+        year: 1
+      }
+      const result = await graphql({
+        source, schema,
+        contextValue: buildContext(user2),
+        variableValues: {
+          id: thang1._id.toHexString(),
+          range: {first}
+        }
+      })
+      // $FlowFixMe
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+    it('should update last slot', async () => {
+      const last = {
+        hour: 1,
+        minute: 10,
+        day: 1,
+        month: 1,
+        year: 1
+      }
+      const result = await graphql({
+        source, schema,
+        contextValue: buildContext(user2),
+        variableValues: {
+          id: thang1._id.toHexString(),
+          range: {last}
+        }
+      })
+      expect(result).toEqual({
+        data: {
+          updateThang: {
+            name: thang1.name,
+            weekdays: thang1.weekdays,
+            timezone: thang1.timezone,
+            range: {last, first: null},
+            slots: thang1.slots,
+            userRestrictions: thang1.userRestrictions,
+          }
+        }
+      })
+    })
+    it('should fail on invalid last slot', async () => {
+      const last = {
+        hour: 1,
+        minute: 10,
+        day: 1,
+        month: 13,
+        year: 1
+      }
+      const result = await graphql({
+        source, schema,
+        contextValue: buildContext(user2),
+        variableValues: {
+          id: thang1._id.toHexString(),
+          range: {last}
+        }
+      })
+      // $FlowFixMe
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+    it('should fail on last slot before first slot', async () => {
+      const last = {
+        hour: 1,
+        minute: 10,
+        day: 1,
+        month: 2,
+        year: 1
+      }
+      const first = {
+        hour: 1,
+        minute: 10,
+        day: 1,
+        month: 3,
+        year: 1
+      }
+      const result = await graphql({
+        source, schema,
+        contextValue: buildContext(user2),
+        variableValues: {
+          id: thang1._id.toHexString(),
+          range: {
+            last,
+            first
+          }
+        }
+      })
+      // $FlowFixMe
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+    it('should update userRestriction ', async () => {
+      const userRestrictions = {
+        maxBookingMinutes: 60,
+        maxDailyBookingMinutes: 10
+      }
+      const result = await graphql({
+        source, schema,
+        contextValue: buildContext(user2),
+        variableValues: {
+          id: thang1._id.toHexString(),
+          userRestrictions
+        }
+      })
+      expect(result).toEqual({
+        data: {
+          updateThang: {
+            timezone: thang1.timezone,
+            name: thang1.name,
+            weekdays: thang1.weekdays,
+            userRestrictions,
+            slots: thang1.slots,
+            range: {
+              first: null,
+              last: null
+            }
+          }
+        }
+      })
+    })
+    it('should fail on below zero values', async () => {
+      const userRestrictions = {
+        maxBookingMinutes: -1,
+        maxDailyBookingMinutes: -1
+      }
+      const result = await graphql({
+        source, schema,
+        contextValue: buildContext(user2),
+        variableValues: {
+          id: thang1._id.toHexString(),
+          userRestrictions
+        }
+      })
       // $FlowFixMe
       expect(result).toFailWithCode('INVALID_INPUT')
     })
     it('should fail on not logged in', async () => {
-      const result = await graphql(schema, updateThang({id: thang1._id.toHexString()}), {}, buildContext())
+      const result = await graphql({
+        source, schema, contextValue: buildContext(), variableValues: {
+          id: thang1._id.toHexString()
+        }
+      })
       // $FlowFixMe
       expect(result).toFailWithCode('USER_NOT_LOGGED_IN')
     })
     it('should fail on other user', async () => {
-      const result = await graphql(schema, updateThang({id: thang2._id.toHexString()}), {}, buildContext(user1))
+      const result = await graphql({
+        source, schema, contextValue: buildContext(user1), variableValues: {
+          id: thang2._id.toHexString()
+        }
+      })
       // $FlowFixMe
       expect(result).toFailWithCode('INSUFFICIENT_PERMISSIONS')
     })
     it('should fail on email not verified', async () => {
-      const result = await graphql(schema, updateThang({id: thang1._id.toHexString()}), {}, buildContext(user2, {emailVerified: false}))
+      const result = await graphql({
+        source, schema, contextValue: buildContext(user2, {emailVerified: false}), variableValues: {
+          id: thang2._id.toHexString()
+        }
+      })
       // $FlowFixMe
       expect(result).toFailWithCode('USER_EMAIL_NOT_VERIFIED')
+    })
+    it('should update slot ', async () => {
+      const slots = {
+        size: 60,
+        start: 10,
+        num: 10
+      }
+      const result = await graphql({
+        source, schema,
+        contextValue: buildContext(user2),
+        variableValues: {
+          id: thang1._id.toHexString(),
+          slots
+        }
+      })
+      expect(result).toEqual({
+        data: {
+          updateThang: {
+            timezone: thang1.timezone,
+            name: thang1.name,
+            weekdays: thang1.weekdays,
+            slots,
+            userRestrictions: thang1.userRestrictions,
+            range: {
+              first: null,
+              last: null
+            }
+          }
+        }
+      })
+    })
+    it('should update slot onpoint ', async () => {
+      const slots = {
+        size: 60,
+        start: 10,
+        num: 12
+      }
+      const result = await graphql({
+        source, schema,
+        contextValue: buildContext(user2),
+        variableValues: {
+          id: thang1._id.toHexString(),
+          slots
+        }
+      })
+      expect(result).toEqual({
+        data: {
+          updateThang: {
+            timezone: thang1.timezone,
+            name: thang1.name,
+            weekdays: thang1.weekdays,
+            slots,
+            userRestrictions: thang1.userRestrictions,
+            range: {
+              first: null,
+              last: null
+            }
+          }
+        }
+      })
+    })
+    it('should fail on zero values', async () => {
+      const slots = {
+        size: 0,
+        start: 0,
+        num: 0
+      }
+      const result = await graphql({
+        source, schema,
+        contextValue: buildContext(user2),
+        variableValues: {
+          id: thang1._id.toHexString(),
+          slots
+        }
+      })
+      // $FlowFixMe
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+    it('should fail on below zero values', async () => {
+      const slots = {
+        size: -1,
+        start: -1,
+        num: -1
+      }
+      const result = await graphql({
+        source, schema,
+        contextValue: buildContext(user2),
+        variableValues: {
+          id: thang1._id.toHexString(),
+          slots
+        }
+      })
+      // $FlowFixMe
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+    it('should fail on larger than 24*60 sum 1', async () => {
+      const slots = {
+        size: 24 * 60 + 1,
+        start: 0,
+        num: 1
+      }
+      const result = await graphql({
+        source, schema,
+        contextValue: buildContext(user2),
+        variableValues: {
+          id: thang1._id.toHexString(),
+          slots
+        }
+      })
+      // $FlowFixMe
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+    it('should fail on larger than 24*60 sum 1', async () => {
+      const slots = {
+        size: 24 * 30,
+        start: 0,
+        num: 3
+      }
+      const result = await graphql({
+        source, schema,
+        contextValue: buildContext(user2),
+        variableValues: {
+          id: thang1._id.toHexString(),
+          slots
+        }
+      })
+      // $FlowFixMe
+      expect(result).toFailWithCode('INVALID_INPUT')
     })
   })
   describe('mutation: deleteUser', () => {
@@ -1160,7 +2317,29 @@ describe('schema', () => {
         users: [],
         deleted: false,
         owners: [user1._id],
-        name: 'Foobar'
+        name: 'Foobar',
+        range: {
+          first: null,
+          last: null
+        },
+        slots: {
+          num: 24,
+          size: 60,
+          start: 0
+        },
+        userRestrictions: {
+          maxBookingMinutes: 0,
+          maxDailyBookingMinutes: 0
+        },
+        weekdays: {
+          mon: true,
+          tue: true,
+          wed: true,
+          thu: true,
+          fri: true,
+          sat: true,
+          sun: true
+        }
       })
       const result = await graphql(schema, deleteUser(user1._id.toHexString()), {}, buildContext(user1))
       // $FlowFixMe
@@ -1444,7 +2623,7 @@ describe('schema', () => {
   })
   describe('subscription: userThangChanges', () => {
     jest.setTimeout(10000)
-    const thangChange  = parse(`
+    const thangChange = parse(`
       subscription {
         myThangsChange {
           add {
@@ -1485,7 +2664,29 @@ describe('schema', () => {
         name: faker.name.findName(),
         owners: [user1._id],
         users: [],
-        timezone: user1.timezone
+        timezone: user1.timezone,
+        range: {
+          first: null,
+          last: null
+        },
+        slots: {
+          num: 24,
+          size: 60,
+          start: 0
+        },
+        userRestrictions: {
+          maxBookingMinutes: 0,
+          maxDailyBookingMinutes: 0
+        },
+        weekdays: {
+          mon: true,
+          tue: true,
+          wed: true,
+          thu: true,
+          fri: true,
+          sat: true,
+          sun: true
+        }
       })
       expect(await v).toEqual({
         done: false,
@@ -1575,10 +2776,12 @@ describe('schema', () => {
         value: {
           data: {
             thangChange: {
-              update: {id: thang1._id.toHexString(), users: [
+              update: {
+                id: thang1._id.toHexString(), users: [
                   {id: user2._id.toHexString()},
                   {id: user1._id.toHexString()}
-                ]},
+                ]
+              },
               remove: null,
               add: null
             }

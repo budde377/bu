@@ -10,19 +10,116 @@
     "collection",
     "createdAt",
     "updatedAt",
-    "deletedAt"
+    "deletedAt",
+    "range",
+    "userRestrictions",
+    "weekdays",
+    "slots"
   ],
   "properties": {
+    "range": {
+      "bsonType": "object",
+      "required": [
+        "first",
+        "last"
+      ],
+      "properties": {
+        "first": {
+          "bsonType": ["date", "null"]
+        },
+        "last": {
+          "bsonType": ["date", "null"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "userRestrictions": {
+      "bsonType": "object",
+      "additionalProperties": false,
+      "required": [
+        "maxBookingMinutes",
+        "maxDailyBookingMinutes"
+      ],
+      "properties": {
+        "maxBookingMinutes": {
+          "bsonType": "int"
+        },
+        "maxDailyBookingMinutes": {
+          "bsonType": "int"
+        }
+      }
+    },
+    "weekdays": {
+      "bsonType": "object",
+      "required": [
+        "mon",
+        "tue",
+        "wed",
+        "thu",
+        "fri",
+        "sat",
+        "sun"
+      ],
+      "properties": {
+        "mon": {
+          "bsonType": "bool"
+        },
+        "tue": {
+          "bsonType": "bool"
+        },
+        "wed": {
+          "bsonType": "bool"
+        },
+        "thu": {
+          "bsonType": "bool"
+        },
+        "fri": {
+          "bsonType": "bool"
+        },
+        "sat": {
+          "bsonType": "bool"
+        },
+        "sun": {
+          "bsonType": "bool"
+        }
+      },
+      "additionalProperties": false
+    },
+    "slots": {
+      "bsonType": "object",
+      "required": [
+        "size",
+        "start",
+        "num"
+      ],
+      "properties": {
+        "size": {
+          "bsonType": "int"
+        },
+        "start": {
+          "bsonType": "int"
+        },
+        "num": {
+          "bsonType": "int"
+        }
+      },
+      "additionalProperties": false
+    },
     "createdAt": {
       "bsonType": "date"
     },
     "deletedAt": {
-      "bsonType": ["date", "null"]
+      "bsonType": [
+        "date",
+        "null"
+      ]
     },
     "updatedAt": {
-      "bsonType": ["date", "null"]
+      "bsonType": [
+        "date",
+        "null"
+      ]
     },
-
     "_id": {
       "bsonType": "objectId"
     },
@@ -45,7 +142,10 @@
       "bsonType": "string"
     },
     "collection": {
-      "bsonType": ["objectId", "null"]
+      "bsonType": [
+        "objectId",
+        "null"
+      ]
     },
     "deleted": {
       "bsonType": "bool"
