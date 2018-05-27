@@ -80,7 +80,7 @@ type Mutation {
     sendResetPasswordMail: SentResult!
     updateUser(id: ID!, givenName: String, familyName: String, timezone: String): User!
     deleteUser(id: ID!): DeleteResult!
-
+    updateThang(id: ID!, name: String, timezone: String): Thang!
 }
 
 type ChangeBooking {

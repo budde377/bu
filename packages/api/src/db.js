@@ -268,6 +268,18 @@ export default class Db {
     return {updated: res.modifiedCount}
   }
 
+  async updateThang (id: ID, profile: $Shape<Thang>): Promise<{| updated: number |}> {
+    const res = await (await this._collectionsP).thangs
+      .updateOne(
+        {_id: id},
+        {
+          $set: {...profile},
+          $currentDate: {updatedAt: true}
+        }
+      )
+    return {updated: res.modifiedCount}
+  }
+
   async thangAddUser (thang: ID, user: ID): Promise<{| updated: number |}> {
     const res = await (await this._collectionsP).thangs
       .updateOne(

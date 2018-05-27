@@ -814,6 +814,11 @@ describe('schema', () => {
       // $FlowFixMe
       expect(result).toFailWithCode('USER_NOT_LOGGED_IN')
     })
+    it('should fail on email not verified', async () => {
+      const result = await graphql(schema, deleteBooking(booking._id.toHexString()), {}, buildContext(user1, {emailVerified: false}))
+      // $FlowFixMe
+      expect(result).toFailWithCode('USER_EMAIL_NOT_VERIFIED')
+    })
     it('should fail on not owner', async () => {
       const result = await graphql(schema, deleteBooking(booking._id.toHexString()), {}, buildContext(user3))
       // $FlowFixMe
@@ -866,6 +871,11 @@ describe('schema', () => {
       const result = await graphql(schema, deleteThang(thang._id.toHexString()), {}, buildContext())
       // $FlowFixMe
       expect(result).toFailWithCode('USER_NOT_LOGGED_IN')
+    })
+    it('should fail on email not verified', async () => {
+      const result = await graphql(schema, deleteThang(thang._id.toHexString()), {}, buildContext(user1, {emailVerified: false}))
+      // $FlowFixMe
+      expect(result).toFailWithCode('USER_EMAIL_NOT_VERIFIED')
     })
     it('should fail on not owner', async () => {
       const result = await graphql(schema, deleteThang(thang._id.toHexString()), {}, buildContext(user3))
@@ -1006,6 +1016,104 @@ describe('schema', () => {
       // $FlowFixMe
       expect(result).toFailWithCode('INSUFFICIENT_PERMISSIONS')
     })
+    it('should fail on invalid id', async () => {
+      const result = await graphql(schema, updateUser({id: faker.random.uuid()}), {}, buildContext(user1))
+      // $FlowFixMe
+      expect(result).toFailWithCode('INSUFFICIENT_PERMISSIONS')
+    })
+    it('should fail on email not verified', async () => {
+      const result = await graphql(schema, updateUser({id: faker.random.uuid()}), {}, buildContext(user1, {emailVerified: false}))
+      // $FlowFixMe
+      expect(result).toFailWithCode('USER_EMAIL_NOT_VERIFIED')
+    })
+  })
+  describe('mutation: updateThang', () => {
+    const updateThang = (props: { id: string, name?: string, timezone?: string }) => `
+      mutation {
+        updateThang(${Object.keys(props).map(k => `${k}: ${JSON.stringify(props[k])}`).join(', ')}) {
+          name
+          timezone
+        }
+      }
+    `
+    it('should update nothing', async () => {
+      const result = await graphql(schema, updateThang({id: thang1._id.toHexString()}), {}, buildContext(user2))
+      expect(result).toEqual({
+        data: {
+          updateThang: {
+            name: thang1.name,
+            timezone: thang1.timezone
+          }
+        }
+      })
+    })
+    it('should update name', async () => {
+      const name = 'FooBar2000'
+      const result = await graphql(schema, updateThang({
+        id: thang1._id.toHexString(),
+        name
+      }), {}, buildContext(user2))
+      expect(result).toEqual({
+        data: {
+          updateThang: {
+            name,
+            timezone: thang1.timezone
+          }
+        }
+      })
+    })
+    it('should fail on empty given name', async () => {
+      const name = ''
+      const result = await graphql(schema, updateThang({
+        id: thang1._id.toHexString(),
+        name
+      }), {}, buildContext(user2))
+      // $FlowFixMe
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+    it('should fail on empty given name 2', async () => {
+      const name = ' '
+      const result = await graphql(schema, updateThang({
+        id: thang1._id.toHexString(),
+        name
+      }), {}, buildContext(user2))
+      // $FlowFixMe
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+
+    it('should update timezone', async () => {
+      const timezone = 'Europe/Copenhagen'
+      const result = await graphql(schema, updateThang({id: thang1._id.toHexString(), timezone}), {}, buildContext(user2))
+      expect(result).toEqual({
+        data: {
+          updateThang: {
+            name: thang1.name,
+            timezone
+          }
+        }
+      })
+    })
+    it('should fail on invalid timezone', async () => {
+      const timezone = 'Foo/Bar'
+      const result = await graphql(schema, updateThang({id: thang1._id.toHexString(), timezone}), {}, buildContext(user2))
+      // $FlowFixMe
+      expect(result).toFailWithCode('INVALID_INPUT')
+    })
+    it('should fail on not logged in', async () => {
+      const result = await graphql(schema, updateThang({id: thang1._id.toHexString()}), {}, buildContext())
+      // $FlowFixMe
+      expect(result).toFailWithCode('USER_NOT_LOGGED_IN')
+    })
+    it('should fail on other user', async () => {
+      const result = await graphql(schema, updateThang({id: thang2._id.toHexString()}), {}, buildContext(user1))
+      // $FlowFixMe
+      expect(result).toFailWithCode('INSUFFICIENT_PERMISSIONS')
+    })
+    it('should fail on email not verified', async () => {
+      const result = await graphql(schema, updateThang({id: thang1._id.toHexString()}), {}, buildContext(user2, {emailVerified: false}))
+      // $FlowFixMe
+      expect(result).toFailWithCode('USER_EMAIL_NOT_VERIFIED')
+    })
   })
   describe('mutation: deleteUser', () => {
     const deleteUser = (id: string) => `
@@ -1024,6 +1132,11 @@ describe('schema', () => {
       const result = await graphql(schema, deleteUser(user1._id.toHexString()), {}, buildContext())
       // $FlowFixMe
       expect(result).toFailWithCode('USER_NOT_LOGGED_IN')
+    })
+    it('should fail on email not verified', async () => {
+      const result = await graphql(schema, deleteUser(user1._id.toHexString()), {}, buildContext(user1, {emailVerified: false}))
+      // $FlowFixMe
+      expect(result).toFailWithCode('USER_EMAIL_NOT_VERIFIED')
     })
     it('should fail on other user', async () => {
       const result = await graphql(schema, deleteUser(user2._id.toHexString()), {}, buildContext(user1))
@@ -1126,6 +1239,11 @@ describe('schema', () => {
       const result = await graphql(schema, deleteThangCollection(collection._id.toHexString()), {}, buildContext())
       // $FlowFixMe
       expect(result).toFailWithCode('USER_NOT_LOGGED_IN')
+    })
+    it('should fail on email not verified', async () => {
+      const result = await graphql(schema, deleteThangCollection(collection._id.toHexString()), {}, buildContext(user1, {emailVerified: false}))
+      // $FlowFixMe
+      expect(result).toFailWithCode('USER_EMAIL_NOT_VERIFIED')
     })
     it('should fail on not owner', async () => {
       const result = await graphql(schema, deleteThangCollection(collection._id.toHexString()), {}, buildContext(user3))

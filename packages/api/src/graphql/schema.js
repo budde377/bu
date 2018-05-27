@@ -173,6 +173,7 @@ type Resolvers = {|
     sendVerificationEmail: Resolver<void, void, SentResult>,
     sendResetPasswordMail: Resolver<void, void, SentResult>,
     updateUser: Resolver<void, { id: string, givenName: ?string, familyName: ?string, timezone: ?string }, User>,
+    updateThang: Resolver<void, { id: string, name: ?string, timezone: ?string }, Thang>
   |},
   Query: {|
     thang: Resolver<void, { id: string }, ?Thang>,
@@ -263,11 +264,10 @@ const resolvers: Resolvers = {
     async owner ({owner}, _, {db}) {
       return db.user(owner)
     },
-    from: ({from}: {from: Date}) => {
-      const res = timestampToDt(from.getTime())
-      return res
+    from: ({from}: { from: Date }) => {
+      return timestampToDt(from.getTime())
     },
-    to: ({to}: {to: Date}) => timestampToDt(to.getTime())
+    to: ({to}: { to: Date }) => timestampToDt(to.getTime())
   },
   Query: {
     thang (ctx, {id}, {db}) {
@@ -362,56 +362,87 @@ const resolvers: Resolvers = {
       }),
     sendResetPasswordMail:
       checkUserLoggedIn((ctx, args, {user}) => auth.resetPasswordEmail(user.email)),
-    updateUser: checkUserLoggedIn(async (ctx, {id, givenName, familyName, timezone}, {user}, db) => {
-      if (id !== user._id.toHexString()) {
-        throw new CustomError('Can\'t update user', 'INSUFFICIENT_PERMISSIONS')
-      }
-      const options = {}
-      if (typeof givenName === 'string') {
-        if (!givenName.trim()) {
-          throw new CustomError('Invalid given name', 'INVALID_INPUT')
+    updateUser:
+      checkEmailVerified(async (ctx, {id, givenName, familyName, timezone}, {user}, db) => {
+        if (id !== user._id.toHexString()) {
+          throw new CustomError('Can\'t update user', 'INSUFFICIENT_PERMISSIONS')
         }
-        options.givenName = givenName.trim()
-      }
-      if (typeof familyName === 'string') {
-        if (!familyName.trim()) {
-          throw new CustomError('Invalid family name', 'INVALID_INPUT')
+        const options = {}
+        if (typeof givenName === 'string') {
+          if (!givenName.trim()) {
+            throw new CustomError('Invalid given name', 'INVALID_INPUT')
+          }
+          options.givenName = givenName.trim()
         }
-        options.familyName = familyName.trim()
-      }
-      if (typeof timezone === 'string') {
-        validateTimezone(timezone)
-        options.timezone = timezone
-      }
-      if (Object.keys(options).length) {
-        await db.updateUser(user._id, options)
-      }
-      return assert(db.user(user._id))
-    }),
-    deleteUser: checkUserLoggedIn(async (ctx, {id}, {user: contextUser}, db) => {
-      if (id !== contextUser._id.toHexString()) {
-        throw new CustomError('Can\'t update user', 'INSUFFICIENT_PERMISSIONS')
-      }
-      const user = await db.user(contextUser._id)
-      if (!user || user.deleted) {
-        return ({deleted: 0})
-      }
-      const [collections, thangs] = await Promise.all([
-        db.userCollections(user._id),
-        db.userThangs(user._id)
-      ])
-      if (collections.length || thangs.length) {
-        const message = collections.length
-          ? 'Can\'t delete user when owning collections'
-          : 'Can\'t delete user when owning thangs'
-        throw new CustomError(message, 'INVALID_INPUT')
-      }
-      const [{deleted: del1}, {deleted: del2}] = await Promise.all([
-        auth.deleteUser(user.profile.userId),
-        db.deleteUser(user._id)
-      ])
-      return {deleted: del1 || del2}
-    }),
+        if (typeof familyName === 'string') {
+          if (!familyName.trim()) {
+            throw new CustomError('Invalid family name', 'INVALID_INPUT')
+          }
+          options.familyName = familyName.trim()
+        }
+        if (typeof timezone === 'string') {
+          validateTimezone(timezone)
+          options.timezone = timezone
+        }
+        if (Object.keys(options).length) {
+          await db.updateUser(user._id, options)
+        }
+        return assert(db.user(user._id))
+      }),
+    updateThang:
+      checkEmailVerified(async (ctx, {id, name, timezone}, {user}, db) => {
+        const i = db.id(id)
+        if (!i) {
+          throw new CustomError('Thang not found', 'NOT_FOUND')
+        }
+        const thang = await db.thang(i)
+        if (!thang) {
+          throw new CustomError('Thang not found', 'NOT_FOUND')
+        }
+        if (!thang.owners.find(id => id.equals(user._id))) {
+          throw new CustomError('Can\'t update thang', 'INSUFFICIENT_PERMISSIONS')
+        }
+        const options = {}
+        if (typeof name === 'string') {
+          if (!name.trim()) {
+            throw new CustomError('Invalid family name', 'INVALID_INPUT')
+          }
+          options.name = name
+        }
+        if (typeof timezone === 'string') {
+          validateTimezone(timezone)
+          options.timezone = timezone
+        }
+        if (Object.keys(options).length) {
+          await db.updateThang(i, options)
+        }
+        return assert(db.thang(i))
+      }),
+    deleteUser:
+      checkEmailVerified(async (ctx, {id}, {user: contextUser}, db) => {
+        if (id !== contextUser._id.toHexString()) {
+          throw new CustomError('Can\'t update user', 'INSUFFICIENT_PERMISSIONS')
+        }
+        const user = await db.user(contextUser._id)
+        if (!user || user.deleted) {
+          return ({deleted: 0})
+        }
+        const [collections, thangs] = await Promise.all([
+          db.userCollections(user._id),
+          db.userThangs(user._id)
+        ])
+        if (collections.length || thangs.length) {
+          const message = collections.length
+            ? 'Can\'t delete user when owning collections'
+            : 'Can\'t delete user when owning thangs'
+          throw new CustomError(message, 'INVALID_INPUT')
+        }
+        const [{deleted: del1}, {deleted: del2}] = await Promise.all([
+          auth.deleteUser(user.profile.userId),
+          db.deleteUser(user._id)
+        ])
+        return {deleted: del1 || del2}
+      }),
     createThang:
       checkEmailVerified(async (ctx, args, {user}: UserProfile, db) => {
         const timezone = args.timezone || user.timezone
@@ -425,8 +456,7 @@ const resolvers: Resolvers = {
           deleted: false,
           timezone
         })
-        const r = await assert(db.thang(id))
-        return r
+        return await assert(db.thang(id))
       }),
     createThangCollection:
       checkEmailVerified(async (ctx, args, {user}: UserProfile, db) => {

@@ -5,6 +5,7 @@ declare module 'mongodb' {
     id: string | number;
     constructor (id: string | number): this;
     toHexString (): string;
+    equals(id: ObjectID): boolean;
   }
 
   declare class ReadPreference {

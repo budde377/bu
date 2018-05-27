@@ -5,7 +5,6 @@ import { type ContextRouter, withRouter } from 'react-router'
 import { Query, type QueryRenderProps, type SubscribeToMoreOptions } from 'react-apollo'
 import BookingTable from './BookingTable'
 import { FormattedMessage } from 'react-intl'
-import LogVisit from '../LogVisit'
 import OnMount from '../OnMount'
 import Logo from '../Logo'
 import { H1 } from '../styled/BuildingBlocks'
@@ -72,7 +71,6 @@ class BaseThang extends React.Component<ContextRouter> {
                   <H1>
                     {thang.name}
                     <OnMount f={subscribe} />
-                    <LogVisit thang={thang.id} />
                   </H1>
                 </Top>
                 <BookingTable thang={thang.id} timezone={thang.timezone} />
