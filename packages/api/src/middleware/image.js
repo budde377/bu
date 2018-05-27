@@ -17,9 +17,9 @@ function userPicture () {
       return next()
     }
     const {data, mime, fetched} = u.profile.picture || identiconFromString(u.email)
-    ctx.response.body = data
+    ctx.response.body = Buffer.from(data.toString('base64'), 'base64')
     ctx.response.type = mime
-    ctx.set('ETag', fetched.toString())
+    ctx.set('ETag', fetched.getTime().toString())
   }
 }
 
