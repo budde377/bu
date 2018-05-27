@@ -46,6 +46,6 @@ describe('dt', () => {
     it('should be right', () => expect(startOfDay(1527444866811)).toBe(1527379200000))
   })
   describe('addDay', () => {
-    it('should be right', () => expect(addDay(1527379200000)).toBe(1527379200000 + 24 * 60 * 60 * 1000))
+    it('should be right', () => expect(addDay(1527379200000, 1)).toBe(1527379200000 + 24 * 60 * 60 * 1000))
   })
 })
