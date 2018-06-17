@@ -13,10 +13,10 @@ before_install:
   - docker-compose -f docker-compose.test.yaml up -d
 
 install:
-  - npm run ci
+  - lerna bootstrap --ci
 
 script:
-  - npm test
+  - lerna run test
 
 deploy:
   provider: script
