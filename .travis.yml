@@ -4,7 +4,10 @@ node_js:
   - 10
 services:
   - docker
-
+cache:
+  directories:
+    - /home/travis/budde377/thang/packages/app/node_modules/
+    - /home/travis/budde377/thang/packages/api/node_modules/
 before_install:
   - sudo ./scripts/install.sh
   - curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get | bash
