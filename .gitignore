@@ -64,3 +64,4 @@ dist
 
 packages/*/config/local*
 data
+packages/*/Dockerfile*

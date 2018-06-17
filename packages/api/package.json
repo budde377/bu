@@ -3,7 +3,7 @@
   "main": "src/index.js",
   "scripts": {
     "postinstall": "scripts/postinstall.js",
-    "build:docker": "docker build --build-arg VERSION=$VERSION -t budde377/thang-api:${VERSION:-latest} .",
+    "build:docker": "docker build -f ../../docker/Dockerfile --build-arg VERSION=$VERSION -t budde377/thang-api:${VERSION:-latest} .",
     "publish:docker": "docker push budde377/thang-api:${VERSION:-latest}",
     "start": "node dist",
     "build": "babel src -d dist --copy-files --ignore **/__tests__/",

@@ -36,7 +36,7 @@ services:
   api:
     build:
       context: packages/api
-      dockerfile: Dockerfile.dev
+      dockerfile: ../../docker/Dockerfile.dev
     environment:
       MONGO_URL: mongodb://mongo-r1:27017,mongo-r2:27017,mongo-r3:27017/thang-test?replicaSet=rs0
     restart: always
@@ -47,7 +47,7 @@ services:
   app:
     build:
       context: packages/app
-      dockerfile: Dockerfile.dev
+      dockerfile: ../../docker/Dockerfile.dev
     restart: always
     environment:
       REDIS_HOST: redis

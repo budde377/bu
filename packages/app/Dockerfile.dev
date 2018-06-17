@@ -1,6 +1,0 @@
-FROM node:10
-
-VOLUME /app
-WORKDIR /app
-
-CMD npm i && npm run dev
