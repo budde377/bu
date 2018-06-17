@@ -1,4 +1,5 @@
 {
+  "name": "@budde377-io/thang-app",
   "description": "Thang.io",
   "scripts": {
     "postinstall": "scripts/postinstall.js",
