@@ -72,6 +72,7 @@
   "devDependencies": {
     "apollo-codegen": "^0.19.1",
     "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.3",
     "babel-eslint": "^8.2.2",
     "babel-loader": "^7.1.4",
     "babel-plugin-inline-import": "^2.0.6",
