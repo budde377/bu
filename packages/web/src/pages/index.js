@@ -36,21 +36,13 @@ const Container = styled.div`
 `
 
 const Lead = styled.div`
-  position: relative;
   height: 49em;
   background-image: linear-gradient(270deg, #AE2370 10%, #C83787 90%);
-  ${TopNav} {
-    left: 0;
-    right: 0;
-    position: absolute;
-    top: 0;
-  }
 `
 
 const IndexPage = () => (
   <Container>
     <Lead>
-      <TopNav />
       <Aligner>
         <Content>
           <h1>

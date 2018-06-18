@@ -9,14 +9,17 @@ const L = styled(Link).attrs({activeClassName: 'active'})`
   color: inherit;
   display: inline-block;
   line-height: 2em;
+  font-family: "Open Sans", sans-serif;
+  font-weight: 400;
   transition: 0.1s border;
   border-bottom: 0.0625em solid transparent;
-  &.active {
-    border-bottom-color: #fff;
-  }
   :hover {
     border-bottom-color: rgba(255, 255, 255, 0.5);
   }
+  &.active {
+    border-bottom-color: #fff;
+  }
+
 `
 
 const Container = styled.div`
@@ -52,10 +55,18 @@ const Container = styled.div`
   }
 `
 
+const LogoL = styled(Link)`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`
+
 export default styled(({className}) => (
   <nav className={className}>
     <Container>
-      <Logo />
+      <LogoL to='/'>
+        <Logo />
+      </LogoL>
       <ul>
         <li>
           <L to='/faq/'>
@@ -91,5 +102,6 @@ export default styled(({className}) => (
     </Container>
   </nav>
 ))`
+  background-image: linear-gradient(270deg, #AE2370 10%, #C83787 90%);
   height: 5em;
 `

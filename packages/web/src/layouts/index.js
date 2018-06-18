@@ -2,6 +2,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import Helmet from 'react-helmet'
 import styled, { injectGlobal } from 'styled-components'
+import TopNav from '../components/TopNav'
 
 import 'reset-css'
 import 'typeface-open-sans'
@@ -26,6 +27,14 @@ injectGlobal`
 const Container = styled.div`
   font-size: 1em;
   line-height: 1.3em;
+  position: relative;
+  ${TopNav} {
+    left: 0;
+    right: 0;
+    position: absolute;
+    top: 0;
+  }
+
 `
 
 const Layout = ({ children, data }) => (
@@ -37,6 +46,7 @@ const Layout = ({ children, data }) => (
         { name: 'keywords', content: 'sample, something' },
       ]}
     />
+    <TopNav />
       {children()}
   </Container>
 )
