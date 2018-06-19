@@ -40,6 +40,13 @@ const Lead = styled.div`
   background-image: linear-gradient(270deg, #AE2370 10%, #C83787 90%);
 `
 
+const Cases = styled.div`
+  p {
+    line-height: 1.8em;
+    color: #444444;
+  }
+`
+
 const IndexPage = () => (
   <Container>
     <Lead>
@@ -54,6 +61,15 @@ const IndexPage = () => (
         </Content>
       </Aligner>
     </Lead>
+    <Cases>
+      <h2>Let people book your stuff</h2>
+      <p>
+        Whether it’s a parking spot, washing machine, office hours, conference rooms, thang is the system for you!
+      </p>
+      <p>
+        Booking doesn’t have to be more complicated than that!
+      </p>
+    </Cases>
   </Container>
 )
 

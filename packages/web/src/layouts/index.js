@@ -28,13 +28,25 @@ const Container = styled.div`
   font-size: 1em;
   line-height: 1.3em;
   position: relative;
+  font-family: "Open sans", sans-serif;
   ${TopNav} {
     left: 0;
     right: 0;
     position: absolute;
     top: 0;
   }
+  p {
+    line-height: 1.8em;
+    color: #444444;
+  }
 
+  h2 {
+    font-family: "Fira Sans";
+    font-weight: 300;
+    font-size: 1.8em;
+    line-height: 1.3em;
+    color: #B02C7F;
+  }
 `
 
 const Layout = ({ children, data }) => (
