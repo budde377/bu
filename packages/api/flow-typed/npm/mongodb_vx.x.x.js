@@ -109,6 +109,7 @@ declare module 'mongodb' {
     next (): Promise<?TDoc>;
     sort(key: $Keys<TDoc> | Array<$Keys<TDoc>>, order: 1 | -1): Cursor<TDoc>;
     toArray (): Promise<Array<TDoc>>;
+    count (): Promsie<number>;
   }
 
   declare type Update<TDoc> = {| $set?: $Shape<TDoc>, $addToSet?: {}, $currentDate?: {} |}

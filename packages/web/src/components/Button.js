@@ -9,5 +9,6 @@ export default styled.button`
   text-align: center;
   font-weight: 400;
   font-size: 1em;
+  white-space: nowrap;
   padding: 0 3em;
 `

@@ -4,7 +4,7 @@ import Logo from './Logo'
 import Button from './Button'
 import Link from 'gatsby-link'
 
-const L = styled(Link).attrs({activeClassName: 'active'})`
+const L = styled(Link).attrs({ activeClassName: 'active' })`
   text-decoration: none;
   color: inherit;
   display: inline-block;
@@ -61,47 +61,72 @@ const LogoL = styled(Link)`
   align-items: center;
 `
 
-export default styled(({className}) => (
-  <nav className={className}>
-    <Container>
-      <LogoL to='/'>
-        <Logo />
-      </LogoL>
-      <ul>
-        <li>
-          <L to='/faq/'>
-            FAQ
-          </L>
-        </li>
-        <li>
-          <L to='/tutorials/'>
-            Tutorials
-          </L>
-        </li>
-        <li>
-          <L to='/developers/'>
-            Developers
-          </L>
-        </li>
-        <li>
-          <L to='/pricing/'>
-            Pricing
-          </L>
-        </li>
-        <li>
-          <L to='/contact/'>
-            Contact
-          </L>
-        </li>
-        <li>
-          <Button inverted>
-            Login
-          </Button>
-        </li>
-      </ul>
-    </Container>
-  </nav>
+const BG = styled.div`
+
+`
+
+export default styled(({ className }) => (
+  <div className={className}>
+    <BG />
+    <nav>
+      <Container>
+        <LogoL to='/'>
+          <Logo />
+        </LogoL>
+        <ul>
+          <li>
+            <L to='/faq/'>
+              FAQ
+            </L>
+          </li>
+          <li>
+            <L to='/tutorials/'>
+              Tutorials
+            </L>
+          </li>
+          <li>
+            <L to='/developers/'>
+              Developers
+            </L>
+          </li>
+          <li>
+            <L to='/pricing/'>
+              Pricing
+            </L>
+          </li>
+          <li>
+            <L to='/contact/'>
+              Contact
+            </L>
+          </li>
+          <li>
+            <Button inverted>
+              Login
+            </Button>
+          </li>
+        </ul>
+      </Container>
+    </nav>
+  </div>
 ))`
-  background-image: linear-gradient(270deg, #AE2370 10%, #C83787 90%);
+  transition: 0.1s background;
   height: 5em;
+  ${BG} {
+    background-image: linear-gradient(270deg, #AE2370 10%, #C83787 90%);
+    opacity: ${({ floating }) => floating ? 1 : 0};
+    box-shadow: 0.0125em 0.0775em #404040;
+    transition: 0.3s opacity;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+  }
+  nav {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+  }
 `
